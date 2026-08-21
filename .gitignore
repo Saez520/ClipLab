@@ -1,0 +1,7 @@
+
+
+# Graphify outputs and local state
+graphify-out/
+
+# macOS
+.DS_Store
