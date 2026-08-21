@@ -1,0 +1,2 @@
+import { describe,it,expect } from 'vitest'; import { validateHandoff } from './handoffs.js';
+describe('handoffs',()=>{it('validates required note fields and optional omissions',()=>expect(validateHandoff('NOTE',{opportunityId:'o1',originalNote:'n',directorDecision:'yes',centralApproach:'a'})).toMatchObject({opportunityId:'o1'})); it('rejects missing minimum fields',()=>expect(()=>validateHandoff('SCRIPT',{opportunityId:'o1'})).toThrow());});

@@ -1,0 +1,3 @@
+import { describe,it,expect,afterEach } from 'vitest'; import { buildApp } from '../src/api/app.js';
+let app:any; afterEach(async()=>{if(app) await app.close();});
+describe('MVP acceptance',()=>{it('keeps opportunity identity and visible blockage in lineage',async()=>{app=buildApp(':memory:'); await app.inject({method:'POST',url:'/api/v1/opportunities',payload:{opportunityId:'accept-1'}}); const r=await app.inject({method:'POST',url:'/api/v1/opportunities/accept-1/block',payload:{actor:'director',reason:'review'}}); expect(r.statusCode).toBe(200); const l=await app.inject({method:'GET',url:'/api/v1/opportunities/accept-1/lineage'}); expect(l.json()).toMatchObject({opportunityId:'accept-1',state:'BLOCKED',blockedReason:'review'});});});

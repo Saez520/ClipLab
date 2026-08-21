@@ -1,0 +1,2 @@
+import { describe,it,expect } from 'vitest'; import { validateAdvance } from './pipeline.js';
+describe('pipeline policy',()=>{it('allows ordered authorized transitions',()=>expect(validateAdvance('NOTE','DIRECTOR',true)).toMatchObject({to:'SCRIPT'})); it('rejects wrong role, missing auth, jumps and blocked state',()=>{expect(()=>validateAdvance('NOTE','WRITER',true)).toThrow('cannot authorize'); expect(()=>validateAdvance('NOTE','DIRECTOR',false)).toThrow('required'); expect(()=>validateAdvance('BLOCKED','DIRECTOR',true)).toThrow('blocked');});});

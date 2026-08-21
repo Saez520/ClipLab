@@ -5,3 +5,10 @@ graphify-out/
 
 # macOS
 .DS_Store
+
+# Product runtime/build artifacts
+node_modules/
+dist/
+data/
+*.sqlite
+.opencode/
