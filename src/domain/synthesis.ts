@@ -54,7 +54,7 @@ export type SynthesisHandoff = z.infer<typeof synthesisHandoffSchema>;
 export function projectSynthesisToHandoff(result: SynthesisResult): SynthesisHandoff {
   const sourceNotes = (result.sources ?? []).map(source => `${source.title}: ${source.locator}`);
   return {
-    relevantSynthesis: [result.conclusion, result.recommendation].join('\n'),
+    relevantSynthesis: [result.conclusion, result.recommendation, ...result.relevantEvidence].join('\n'),
     sourcesToPreserve: sourceNotes,
     acceptedGaps: [...result.uncertainties, ...(result.actionRequired ? [result.actionRequired] : [])],
   };
