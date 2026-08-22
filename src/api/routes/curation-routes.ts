@@ -1,0 +1,9 @@
+import type { FastifyInstance } from 'fastify'; import { z } from 'zod'; import { CurationService } from '../../application/curation-service.js'; import { sendError } from '../http-errors.js';
+const params=z.object({id:z.string().min(1)}); const proposalParams=z.object({id:z.string().min(1),proposalId:z.string().min(1)}); const actor=z.string().min(1);
+export async function curationRoutes(app:FastifyInstance, service:CurationService){
+ app.post('/opportunities/:id/curation/proposals',async(req,res)=>{try{const p=params.parse(req.params); const raw=z.record(z.unknown()).parse(req.body); const director=actor.parse(raw.director ?? 'director'); const input=raw.input ?? Object.fromEntries(Object.entries(raw).filter(([key])=>key!=='director')); return res.code(201).send(service.propose(p.id,input,director));}catch(e){return sendError(res,e);}});
+ // GET is intentionally kept for traceability of the latest or selected proposal.
+ app.get('/opportunities/:id/curation/proposals/:proposalId?',async(req,res)=>{try{const p=z.object({id:z.string().min(1),proposalId:z.string().min(1).optional()}).parse(req.params); return res.send(service.get(p.id,p.proposalId));}catch(e){return sendError(res,e);}});
+ app.post('/opportunities/:id/curation/proposals/:proposalId/approve',async(req,res)=>{try{const p=proposalParams.parse(req.params); const b=z.object({actor,reason:z.string().optional(),overrideProofOfConcept:z.boolean().optional()}).parse(req.body); return res.send(service.approve(p.id,p.proposalId,b));}catch(e){return sendError(res,e);}});
+ app.post('/opportunities/:id/curation/proposals/:proposalId/question',async(req,res)=>{try{const p=proposalParams.parse(req.params); const b=z.object({actor,reason:z.string().min(1)}).parse(req.body); return res.send(service.question(p.id,p.proposalId,b));}catch(e){return sendError(res,e);}});
+}

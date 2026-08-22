@@ -1,0 +1,13 @@
+import { curationInputSchema, developerResponseSchema, evaluateCuration, type CurationInput } from '../domain/curation.js';
+import { AuthorizationRequiredError, ValidationError } from '../domain/errors.js';
+import { CurationRepository } from '../infrastructure/repositories/curation-repository.js';
+import { PipelineRepository } from '../infrastructure/repositories/pipeline-repository.js';
+export class CurationService {
+  constructor(private curation: CurationRepository, private pipeline: PipelineRepository) {}
+  propose(opportunityId:string, input:unknown, director='director') { const parsed=curationInputSchema.parse(input); const proposal=evaluateCuration(parsed,director); const proposalId=`${opportunityId}-${Date.now()}-${Math.random().toString(36).slice(2,8)}`; return this.curation.createProposal(opportunityId,proposalId,proposal,proposal.result,director,parsed); }
+  get(opportunityId:string, proposalId?:string) { return proposalId ? this.curation.getProposal(opportunityId,proposalId) : this.curation.latest(opportunityId); }
+  approve(opportunityId:string, proposalId:string, input:unknown) { const response=developerResponseSchema.parse(input); const proposal=this.curation.getProposal(opportunityId,proposalId); if(proposal.status !== 'PROPOSED') throw new ValidationError('Only a proposed editorial decision can be approved'); if(proposal.result==='DISCARD' || proposal.result==='REQUEST_CONTEXT') { if(!response.overrideProofOfConcept) throw new ValidationError('This decision requires explicit proof-of-concept override'); if(!response.reason?.trim()) throw new ValidationError('Override reason is required'); }
+    const id=this.curation.transaction(()=>{ if(response.overrideProofOfConcept) this.curation.addWarning(proposalId,'Prueba de concepto'); this.curation.respond(opportunityId,proposalId,'APPROVED',response.actor,response.reason); const authorization=this.pipeline.authorize(opportunityId,'NOTE','DIRECTOR',response.actor); this.curation.setAuthorization(proposalId,authorization); return authorization; });
+    return {...this.curation.getProposal(opportunityId,proposalId), authorizationId:id}; }
+  question(opportunityId:string, proposalId:string, input:unknown) { const response=developerResponseSchema.parse(input); if(!response.reason?.trim()) throw new ValidationError('Question reason is required'); const proposal=this.curation.getProposal(opportunityId,proposalId); if(proposal.status!=='PROPOSED') throw new ValidationError('Only a proposed editorial decision can be questioned'); return this.curation.respond(opportunityId,proposalId,'QUESTIONED',response.actor,response.reason); }
+}

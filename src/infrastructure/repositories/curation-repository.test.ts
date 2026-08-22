@@ -1,0 +1,5 @@
+import { describe,it,expect,afterEach } from 'vitest'; import { openDatabase } from '../db/database.js'; import { PipelineRepository } from './pipeline-repository.js'; import { CurationRepository } from './curation-repository.js';
+let db:any; afterEach(()=>db?.close()); const p={result:'APPROVE',justification:'ok'};
+describe('curation repository',()=>{it('round trips proposal and history',()=>{db=openDatabase(':memory:');new PipelineRepository(db).create('o');const r=new CurationRepository(db);r.createProposal('o','p',p,'APPROVE','d',{criteria:true});r.respond('o','p','QUESTIONED','u','why');expect(r.getProposal('o','p').proposal).toEqual(p);expect(r.responses('p')).toHaveLength(1);});
+ it('stores approval authorization link',()=>{db=openDatabase(':memory:');new PipelineRepository(db).create('o');const r=new CurationRepository(db);r.createProposal('o','p',p,'APPROVE','d',{});r.respond('o','p','APPROVED','u','yes',3);expect(r.getProposal('o','p').responses[0].authorization_id).toBe(3);});
+ it('rejects unknown opportunity/proposal',()=>{db=openDatabase(':memory:');const r=new CurationRepository(db);expect(()=>r.latest('missing')).toThrow();});});
