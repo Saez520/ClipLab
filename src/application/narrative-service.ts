@@ -57,6 +57,7 @@ export class NarrativeService {
     const draft = this.narrative.createScript(opportunityId, scriptId, approvedConfiguration.configurationId, {
       narrativeText: parsed.narrativeText,
       references,
+      sources: parsed.sources,
       targetDurationSeconds: approvedConfiguration.targetDurationSeconds
     }, 'DRAFT', actor);
     return this.narrative.setScriptState(opportunityId, draft.scriptId, 'READY_FOR_DIRECTOR_VALIDATION', actor);
@@ -83,6 +84,7 @@ export class NarrativeService {
     return this.narrative.createScript(opportunityId, scriptId, approvedConfiguration.configurationId, {
       narrativeText: parsed.narrativeText,
       references,
+      sources: parsed.sources,
       targetDurationSeconds: approvedConfiguration.targetDurationSeconds
     }, 'DRAFT', actor, undefined);
   }

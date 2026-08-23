@@ -12,7 +12,7 @@ export type Transition = typeof TRANSITIONS[number];
 export function transitionFor(state: PipelineState): Transition {
   const t = TRANSITIONS.find(x => x.from === state); if (!t) throw new TransitionNotAllowedError('Pipeline is already FINAL'); return t;
 }
-export function validateAdvance(state: VisibleState, role: Role, authorized: boolean): Transition {
+export function validateAdvance(state: VisibleState, role: Role, authorized: boolean | { id: number }): Transition {
   if (state === 'BLOCKED') throw new BlockedPipelineError();
   const t = transitionFor(state);
   if (t.role !== role) throw new TransitionNotAllowedError(`Role ${role} cannot authorize ${t.from} to ${t.to}`);

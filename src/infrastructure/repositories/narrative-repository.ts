@@ -1,6 +1,6 @@
 import type Database from 'better-sqlite3';
 import { NotFoundError, NarrativeStateError } from '../../domain/errors.js';
-import { assertNarrativeTransition, type NarrativeConfiguration, type NarrativeScript, type NarrativeState } from '../../domain/narrative.js';
+import { assertNarrativeTransition, narrativeScriptSchema, type NarrativeConfiguration, type NarrativeScript, type NarrativeState } from '../../domain/narrative.js';
 
 const now = () => new Date().toISOString();
 
@@ -98,6 +98,6 @@ export class NarrativeRepository {
   }
 
   private mapScript(row: any): NarrativeScript {
-    return JSON.parse(row.payload) as NarrativeScript;
+    return narrativeScriptSchema.parse(JSON.parse(row.payload));
   }
 }

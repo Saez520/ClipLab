@@ -76,6 +76,7 @@ export const narrativeScriptSchema = z.object({
   narrativeText: z.string().min(1),
   references: z.array(inlineReferenceSchema),
   targetDurationSeconds: z.number().positive().optional(),
+  sources: z.record(z.string()).default({}),
   blockedReason: z.string().min(1).optional(),
   blockedRecipient: z.string().min(1).optional(),
   directorValidationId: id.optional(),
@@ -117,7 +118,8 @@ function validateSection(path: string, locator: string, source: string): Pick<In
   const headings = source.split(/\r?\n/)
     .filter(line => /^\s*#{1,6}\s+/.test(line))
     .map(line => line.replace(/^\s*#{1,6}\s+/, '').trim().toLowerCase());
-  if (!headings.includes(locator.trim().toLowerCase())) {
+  const matches = headings.filter(heading => heading === locator.trim().toLowerCase());
+  if (matches.length !== 1) {
     throw new ValidationError(`Reference section cannot be resolved: ${path}:${locator}`);
   }
   return { locator: 'section', section: locator };
