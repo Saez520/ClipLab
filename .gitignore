@@ -12,3 +12,4 @@ dist/
 data/
 *.sqlite
 .opencode/
+.worktrees/
