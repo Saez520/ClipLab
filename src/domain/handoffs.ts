@@ -67,7 +67,22 @@ export const storyboardToRenderSchema = z.object({
   }
 });
 export type StoryboardToRenderHandoff = z.infer<typeof storyboardToRenderSchema>;
-export const renderToFinalSchema = z.object({ opportunityId:id, scriptOriginReference:id, storyboardOriginReference:id, productionResult:z.string().min(1), synchronizationStatus:z.string().min(1), knownIncidents:z.array(z.string()).optional(), finalAuthorizationOrReturn:z.string().min(1) });
+/**
+ * RENDER→FINAL handoff, strictly typed: only constructible from a SUCCEEDED
+ * render (see RenderService.buildFinalHandoffDraft). A failed or incomplete
+ * render can never satisfy this schema, so it can never reach FINAL.
+ */
+export const renderToFinalSchema = z.object({
+  opportunityId: id,
+  scriptOriginReference: id,
+  storyboardOriginReference: id,
+  productionAuthorizationReference: id,
+  renderId: id,
+  productionResult: z.object({ artifactPath: z.string().min(1), sha256: z.string().min(1), durationSeconds: z.number().positive(), width: z.number().int().positive(), height: z.number().int().positive(), fps: z.number().int().positive() }).strict(),
+  synchronizationStatus: z.literal('SYNCED'),
+  knownIncidents: z.array(z.string()).optional(),
+  finalAuthorizationOrReturn: z.enum(['FINAL_AUTHORIZATION', 'RETURN_TO_RENDER'])
+}).strict();
 export const handoffSchemas = { NOTE: noteToScriptSchema, SCRIPT: scriptToStoryboardSchema, STORYBOARD: storyboardToRenderSchema, RENDER: renderToFinalSchema } as const;
 export type HandoffPayload = z.infer<typeof noteToScriptSchema> | z.infer<typeof scriptToStoryboardSchema> | z.infer<typeof storyboardToRenderSchema> | z.infer<typeof renderToFinalSchema>;
 export function validateHandoff(state: keyof typeof handoffSchemas, payload: unknown): HandoffPayload { return handoffSchemas[state].parse(payload) as HandoffPayload; }

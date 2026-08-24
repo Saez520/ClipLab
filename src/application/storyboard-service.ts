@@ -1,6 +1,6 @@
 import { z, ZodError } from 'zod';
 import { storyboardToRenderSchema, type StoryboardToRenderHandoff } from '../domain/handoffs.js';
-import { AuthorizationRequiredError, NotFoundError, SourceUnresolvedError, StoryboardApprovalRequiredError, StoryboardBlockedError, StoryboardStateError, ValidationError } from '../domain/errors.js';
+import { AuthorizationRequiredError, NotFoundError, ProductionGateError, SourceUnresolvedError, StoryboardApprovalRequiredError, StoryboardBlockedError, StoryboardStateError, ValidationError } from '../domain/errors.js';
 import { finalDuration, dependentSegmentIds, normalizePublicationProfile, assertStoryboardApprovalAllowed, requiresExplicitApproval, storyboardCorrectionSchema, storyboardRevisionSchema, storyboardSegmentProposalSchema, validateStoryboardSegment, type StoryboardCorrection, type StoryboardRevision, type StoryboardSegment, type StoryboardSegmentProposal } from '../domain/storyboard.js';
 import { textWithoutReferences, type InlineReference, type NarrativeScript } from '../domain/narrative.js';
 import { compareTechnicalConditions, extractTechnicalConditions, technicalConditionKey, type TechnicalCondition } from '../domain/technical-conditions.js';
@@ -171,6 +171,61 @@ export class StoryboardService {
 
   handoff(opportunityId: string): StoryboardToRenderHandoff {
     const revision = this.storyboard.getRevision(opportunityId);
+    if (requiresExplicitApproval(revision.finalDurationSeconds) && !this.storyboard.approval(opportunityId, revision.storyboardRevisionId)) {
+      throw new StoryboardApprovalRequiredError('A storyboard over 90 seconds requires explicit user approval before handoff');
+    }
+    const authorization = this.pipeline.authorization(opportunityId, 'STORYBOARD', 'STORYBOARD');
+    if (!authorization) throw new AuthorizationRequiredError('A persisted STORYBOARD authorization is required before handoff');
+    return this.buildHandoffPayload(opportunityId, String(authorization.id));
+  }
+
+  /**
+   * Production gate: verifies that the LAST persisted STORYBOARD→RENDER handoff
+   * still corresponds to the currently approved revision with no pending
+   * corrections, and that its production authorization exists and was consumed
+   * by the pipeline transition. Byte-for-byte reconstruction reuses the exact
+   * same payload building logic as handoff() so key order matches.
+   */
+  verifyAuthorizedHandoff(opportunityId: string): StoryboardToRenderHandoff {
+    let persisted: Record<string, unknown>;
+    try {
+      persisted = this.pipeline.latestStoryboardHandoff(opportunityId) as Record<string, unknown>;
+    } catch (error) {
+      if (error instanceof NotFoundError) throw new ProductionGateError(`No authorized production package is persisted for opportunity ${opportunityId}`, { reason: 'STALE_PACKAGE' });
+      throw error;
+    }
+    const productionAuthorization = String(persisted.productionAuthorization ?? '');
+    const authorizationId = Number(productionAuthorization);
+    const authorization = Number.isInteger(authorizationId) && authorizationId > 0 ? this.pipeline.authorizationById(authorizationId) : undefined;
+    if (!authorization || authorization.from_state !== 'STORYBOARD' || authorization.role !== 'STORYBOARD' || !authorization.consumed) {
+      throw new ProductionGateError('The persisted production package references an authorization that is missing or was never consumed by the pipeline transition', { reason: 'STALE_PACKAGE', productionAuthorization });
+    }
+    let expected: StoryboardToRenderHandoff;
+    try {
+      expected = this.buildHandoffPayload(opportunityId, productionAuthorization);
+    } catch (error) {
+      if (error instanceof StoryboardApprovalRequiredError || error instanceof StoryboardBlockedError || error instanceof NotFoundError) {
+        throw new ProductionGateError(
+          `The persisted package no longer matches the current approved revision (${error.message})`,
+          { reason: 'STALE_PACKAGE', cause: error.message }
+        );
+      }
+      throw error;
+    }
+    const persistedText = JSON.stringify(storyboardToRenderSchema.parse(persisted));
+    if (persistedText !== JSON.stringify(expected)) {
+      throw new ProductionGateError('The persisted package does not match the current approved revision byte-for-byte', { reason: 'STALE_PACKAGE', mismatchPath: firstDivergingPath(persistedText, JSON.stringify(expected)) });
+    }
+    return expected;
+  }
+
+  /**
+   * Single source of truth for the handoff payload construction: both the
+   * pre-transition handoff() and the production gate build through here so
+   * JSON.stringify comparisons are stable.
+   */
+  private buildHandoffPayload(opportunityId: string, productionAuthorization: string): StoryboardToRenderHandoff {
+    const revision = this.storyboard.getRevision(opportunityId);
     const approval = this.storyboard.approval(opportunityId, revision.storyboardRevisionId);
     if (requiresExplicitApproval(revision.finalDurationSeconds) && !approval) {
       throw new StoryboardApprovalRequiredError('A storyboard over 90 seconds requires explicit user approval before handoff');
@@ -178,8 +233,6 @@ export class StoryboardService {
     if (revision.state !== 'STORYBOARD_USER_APPROVED') throw new StoryboardApprovalRequiredError('The current storyboard revision has not been approved by the user');
     if (!approval) throw new StoryboardApprovalRequiredError();
     if (this.storyboard.pendingCorrections(opportunityId).length) throw new StoryboardBlockedError('A pending storyboard correction blocks the render handoff');
-    const authorization = this.pipeline.authorization(opportunityId, 'STORYBOARD', 'STORYBOARD');
-    if (!authorization) throw new AuthorizationRequiredError('A persisted STORYBOARD authorization is required before handoff');
     const script = this.narrative.getScript(opportunityId, revision.scriptId) as any;
     const payload = {
       opportunityId,
@@ -201,7 +254,7 @@ export class StoryboardService {
       validations: revision.validations,
       corrections: revision.corrections,
       userApprovalId: approval.approval_id,
-      productionAuthorization: String(authorization.id),
+      productionAuthorization,
       state: 'AUTHORIZED_FOR_PRODUCTION' as const,
       authorizationState: 'AUTHORIZED_FOR_PRODUCTION' as const
     };
@@ -449,4 +502,33 @@ function deriveMaterialValidation(proposal: StoryboardSegmentProposal, scriptTex
 
 function normalizeForMatch(value: string): string {
   return value.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+/** First diverging path between two serialized JSON documents, for operator-visible gate details. */
+function firstDivergingPath(leftJson: string, rightJson: string): string {
+  let left: unknown;
+  let right: unknown;
+  try { left = JSON.parse(leftJson); right = JSON.parse(rightJson); } catch { return '$'; }
+  const walk = (a: unknown, b: unknown, path: string): string | null => {
+    if (JSON.stringify(a) === JSON.stringify(b)) return null;
+    if (Array.isArray(a) && Array.isArray(b)) {
+      const length = Math.max(a.length, b.length);
+      for (let index = 0; index < length; index += 1) {
+        if (index >= a.length || index >= b.length) return `${path}[${index}]`;
+        const nested = walk(a[index], b[index], `${path}[${index}]`);
+        if (nested) return nested;
+      }
+      return null;
+    }
+    if (a && b && typeof a === 'object' && typeof b === 'object') {
+      const keys = new Set([...Object.keys(a as object), ...Object.keys(b as object)]);
+      for (const key of keys) {
+        const nested = walk((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key], `${path}.${key}`);
+        if (nested) return nested;
+      }
+      return null;
+    }
+    return path;
+  };
+  return walk(left, right, '$') ?? '$';
 }
