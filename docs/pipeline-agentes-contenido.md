@@ -1,5 +1,7 @@
 # Pipeline de agentes para creación de contenido (FlowTask / LinkedIn-Reels)
 
+> **Nota (2026-08-26, hotfix HF-documentacion-proyecto):** este archivo es el diseño conversacional original (v1). La fuente de estado actual del pipeline es `docs/pipeline-agentes-contenido-v2.md` (v2): refleja los CAs implementados y mergeados (incluidos storyboard dual-channel y producción sincronizada) y los 5 agentes de contenido materializados en `agents/*.md`. La v1 se conserva únicamente como histórico de diseño.
+
 Contexto: definición del pipeline multi-agente para producir contenido técnico (arquitectura de agentes, FlowTask) en formato dual-channel (audio narra accesible, visual muestra lo mismo con precisión técnica, en simultáneo, ejecutado vía Hyperframes).
 
 Este documento cierra la fase de diseño conversacional. Objetivo: dejar todo aclarado antes de mandarlo a construcción.

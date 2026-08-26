@@ -146,3 +146,15 @@ Lista original de Saez, clasificada en: descartar / unificar / cambiar foco / ac
 - Diseñar el formato de guion con marcas de tiempo/cues de sincronización para que el pipeline guionista → constructor (Hyperframes) lo soporte de forma consistente, no ad-hoc.
 - Definir el "puente de negocio" concreto para cada concepto técnico antes de producir, evitando traducciones genéricas sin sustancia.
 - Decidir el orden de producción priorizando la pieza ancla (loop-agent de bajo costo / FlowTask) dado que es la más diferenciada.
+
+---
+
+## 8. Estado al 2026-08-26 (actualización documental — hotfix HF-documentacion-proyecto)
+
+Este documento es material de estrategia (conversación, agosto 2026) y se conserva como histórico. El estado real del pipeline que lo soporta, en `main` @ `0544df4` (fuente de estado: `docs/pipeline-agentes-contenido-v2.md`):
+
+- El **doble canal sincronizado** está soportado por CAs implementados y mergeados: `ca-storyboard-dual-channel` (merge `d107d8e`, 2026-08-23; #3600, #4411) y `ca-produccion-video-sincronizado` (merge `3f3954a`, 2026-08-24; #3601, #4310).
+- Los **5 agentes de contenido** están materializados en `agents/*.md` (registro en `opencode.json`): Director, Síntesis, Guionista, Storyboard y Editor (`cliplab-director|sintesis|guionista|storyboard|editor`) — merges 2026-08-25/26 (`a76590e` → `3ffb6d4`).
+- La **capa de memoria** de los 5 agentes quedó en la skill `skill/convenciones-memoria-agentes-contenido/SKILL.md` (#4187, #4190).
+- El tramo "guionista → constructor (Hyperframes)" de las secciones 4/7 se materializa como guionista → storyboard → editor, con Hyperframes como motor de render del Editor (ver `docs/investigacion-hyperframes-roles-agentes.md` y `agents/editor.md`).
+- Los pendientes de §7 siguen vigentes: formato de guion con cues de sincronización, puente de negocio por concepto y orden de producción priorizando la pieza ancla.

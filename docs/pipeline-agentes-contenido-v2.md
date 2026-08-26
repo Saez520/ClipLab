@@ -1,6 +1,7 @@
 # Pipeline de agentes para creación de contenido (FlowTask / LinkedIn-Reels) — v2
 
-**Fecha de corte:** 2026-08-22.  
+**Fecha de corte (original):** 2026-08-22.  
+**Actualización (2026-08-26, hotfix HF-documentacion-proyecto):** las secciones 2, 4, 5, 6 y 7 reflejan el estado real de `main` @ `0544df4`: `ca-storyboard-dual-channel` y `ca-produccion-video-sincronizado` implementados y mergeados, y los 5 agentes de contenido materializados con su capa de memoria (sección 8). El histórico del corte 2026-08-22 se conserva; los cambios son aditivos y se marcan con evidencia (commits e IDs Engram).
 **Fuente de verdad:** memorias Engram del proyecto `cliplab`. El archivo v1 se usó únicamente para conservar la estructura y el formato; no se usa como fuente de estado actual.
 
 El pipeline separa tres capas: usuario, agentes conversacionales y una API de orquestación determinística. El usuario conversa con el Director; los agentes se relacionan con la API para estados y handoffs. Research externo quedó fuera del pipeline; la síntesis de contexto reemplaza la investigación interna del flujo (#3626, #3662).
@@ -68,7 +69,7 @@ La orquestación es una capa transversal de control determinístico, no un agent
                             │ handoff simple; Director valida antes
                             ▼
                  ┌──────────────────────────┐
-                 │   STORYBOARD / ESTRUCTURA │  SOLO DEFINIDO
+                 │   STORYBOARD / ESTRUCTURA │  IMPLEMENTADO + MERGEADO (2026-08-23, d107d8e)
                  │  - segmentos y duración   │
                  │  - ritmo y posiciones     │
                  │  - correspondencia audio  │
@@ -76,7 +77,7 @@ La orquestación es una capa transversal de control determinístico, no un agent
                  └──────────┬────────────────┘
                             ▼
                  ┌──────────────────────────┐
-                 │   EDITOR / HYPERFRAMES    │  SOLO DEFINIDO
+                 │   EDITOR / HYPERFRAMES    │  IMPLEMENTADO + MERGEADO (2026-08-24, 3f3954a)
                  │  - render sincronizado    │
                  │  - no reabre decisiones    │
                  └──────────┬────────────────┘
@@ -118,19 +119,19 @@ La frontera narrativa es estricta: el storyboard consume el producto del narrado
 
 ## 4. Preguntas pendientes (definir ANTES de construir)
 
-Las siguientes preguntas no deben presentarse como decisiones cerradas: permanecen en los CAs que todavía están solo definidos.
+Las siguientes preguntas no deben presentarse como decisiones cerradas: las marcadas **RESUELTA** se cerraron con la implementación y merge de sus CAs (marcado aditivo 2026-08-26); las no marcadas permanecen en los CAs que todavía están solo definidos.
 
-1. **Storyboard — aceptación previa al render.** Falta definir quién valida que la correspondencia audio-visual y el ritmo sean aptos para producir (#3600).
+1. **Storyboard — aceptación previa al render.** Falta definir quién valida que la correspondencia audio-visual y el ritmo sean aptos para producir (#3600). → **RESUELTA**: `ca-storyboard-dual-channel` implementado y mergeado (2026-08-23, `d107d8e`; #3600, #4411).
 
-2. **Storyboard — restricciones de formato.** Faltan duración, audiencia, idioma y formato de publicación que condicionan segmentos, densidad visual y ritmo (#3600).
+2. **Storyboard — restricciones de formato.** Faltan duración, audiencia, idioma y formato de publicación que condicionan segmentos, densidad visual y ritmo (#3600). → **RESUELTA**: cerrada en la implementación de `ca-storyboard-dual-channel` (`d107d8e`; #4411).
 
-3. **Storyboard → producción.** Falta definir el payload mínimo del storyboard aprobado para que producción no deba reinterpretarlo (#3600).
+3. **Storyboard → producción.** Falta definir el payload mínimo del storyboard aprobado para que producción no deba reinterpretarlo (#3600). → **RESUELTA**: cerrada en la implementación de `ca-storyboard-dual-channel` (`d107d8e`; #4411).
 
-4. **Producción — puerta de entrada al render.** Falta definir quién confirma que el storyboard está aprobado para enviarlo a Hyperframes (#3601).
+4. **Producción — puerta de entrada al render.** Falta definir quién confirma que el storyboard está aprobado para enviarlo a Hyperframes (#3601). → **RESUELTA**: `ca-produccion-video-sincronizado` implementado y mergeado (2026-08-24, `3f3954a`; #3601, #4310).
 
-5. **Producción — fallos de render.** Falta definir el detalle visible al operador, la cantidad de reintentos y cuándo volver al storyboard (#3601). La orquestación general no reintenta automáticamente en su MVP (#3602, #3651).
+5. **Producción — fallos de render.** Falta definir el detalle visible al operador, la cantidad de reintentos y cuándo volver al storyboard (#3601). La orquestación general no reintenta automáticamente en su MVP (#3602, #3651). → **RESUELTA**: cerrada en la implementación de `ca-produccion-video-sincronizado` (`3f3954a`; #4310).
 
-6. **Producción — límites de capacidad.** Faltan duración por video, volumen concurrente y formatos de salida (#3601).
+6. **Producción — límites de capacidad.** Faltan duración por video, volumen concurrente y formatos de salida (#3601). → **RESUELTA**: cerrada en la implementación de `ca-produccion-video-sincronizado` (`3f3954a`; #4310).
 
 7. **Hooks — flujo de producción e inclusión.** Falta decidir si usan el dual-channel completo, una versión abreviada u otro recorrido, y si entran en la primera entrega (#3603).
 
@@ -138,7 +139,7 @@ Las siguientes preguntas no deben presentarse como decisiones cerradas: permanec
 
 9. **Backlog y artefactos completos.** El backlog queda fuera del CA de síntesis; tampoco está cerrada la ubicación de artefactos completos frente a contratos/handoffs (#3599, #3662).
 
-10. **Agentes de OpenCode.** Los agentes del pipeline aún no están construidos. Existe un CA futuro para crearlos al final, después de definir los demás CAs; todavía no hay slug ni implementación registrada (#3768, #3769).
+10. **Agentes de OpenCode.** Los agentes del pipeline aún no están construidos. Existe un CA futuro para crearlos al final, después de definir los demás CAs; todavía no hay slug ni implementación registrada (#3768, #3769). → **RESUELTA**: los 5 agentes de contenido quedaron materializados en `agents/*.md` con registro en `opencode.json` (2026-08-25/26, merges `a76590e` → `3ffb6d4`; #4208, #4386, #4411, #4429) y capa de memoria (sección 8).
 
 11. **Merge de orquestación.** Hay evidencia de implementación, commit y validación aprobada, pero no de un squash-merge o merge explícito; por eso el estado se informa como “implementado sin merge registrado” (#3652, #3664, #3663).
 
@@ -148,17 +149,16 @@ Las siguientes preguntas no deben presentarse como decisiones cerradas: permanec
 
 ## 5. Con qué seguir antes de construir
 
-- Construir y cerrar `ca-storyboard-dual-channel`, resolviendo aceptación, restricciones de formato y handoff hacia producción (#3600, #3631).
-- Construir y cerrar `ca-produccion-video-sincronizado`, resolviendo la puerta de render, fallos y límites de capacidad (#3601, #3631).
-- Construir y cerrar `ca-hooks-introductorios` después de validar el flujo principal, resolviendo su recorrido y reglas editoriales (#3603, #3631).
-- Crear al final el CA dedicado a materializar los agentes de OpenCode: Director, síntesis, guion, storyboard y editor, consumiendo los contratos/API ya definidos (#3768).
+- Construir y cerrar `ca-hooks-introductorios` después de validar el flujo principal, resolviendo su recorrido y reglas editoriales (#3603, #3631) — único CA del pipeline que sigue solo definido.
 - Mantener separadas las tres capas: conversación usuario↔agente, estados/handoffs agente↔API y artefactos completos cuya ubicación todavía está abierta (#3662).
 
-La parte ya implementada del flujo es: orquestación determinística, síntesis de contexto, curación del Director y guion narrado. La parte storyboard, producción y materialización de agentes permanece pendiente según la evidencia disponible (#3652, #3747, #3855, #3936, #3768).
+Actualización 2026-08-26 (hotfix HF-documentacion-proyecto): lo que esta sección listaba como pendiente ya está cerrado — `ca-storyboard-dual-channel` (merge `d107d8e`, 2026-08-23), `ca-produccion-video-sincronizado` (merge `3f3954a`, 2026-08-24) y la materialización de los 5 agentes de contenido en `agents/*.md` (merges `a76590e` → `3ffb6d4`, 2026-08-25/26; #4208, #4386, #4411, #4429).
+
+Estado al 2026-08-26: la parte ya implementada y mergeada del flujo es orquestación determinística, síntesis de contexto, curación del Director, guion narrado, storyboard dual-channel, producción sincronizada (Hyperframes) y la materialización de los 5 agentes de contenido. Queda pendiente solo `ca-hooks-introductorios` según la evidencia disponible (#3652, #3747, #3855, #3936, #3768, #4310).
 
 ---
 
-## 6. Estado de CAs a 2026-08-22
+## 6. Estado de CAs a 2026-08-26 (tabla creada al 2026-08-22; estados actualizados aditivamente por el hotfix HF-documentacion-proyecto)
 
 | CA | Estado clasificado | Evidencia Engram | Qué actualiza del pipeline |
 |---|---|---|---|
@@ -166,10 +166,14 @@ La parte ya implementada del flujo es: orquestación determinística, síntesis 
 | `ca-sintesis-contexto` (antes CA-002) | **Implementado + mergeado** | APPROVED 93/100; implementación cerrada y commit/hotfix publicado en `origin/main` (#3747, #3743, #3788, #3774). | Mano derecha solo para el Director, continuidad por sesión, síntesis orientada a decisión, faltantes explícitos y fuentes condicionadas (#3599, #3619). |
 | `ca-curador-director` (antes CA-001/CA-003 en registros históricos) | **Implementado + mergeado** | APPROVED 95/100; reconstrucción mergeada a `main` en `8df2bbe` (#3855, #3860). | Matriz editorial, doble canal por defecto, alcance unilateral advertido, “Prueba de concepto”, autorización del usuario y continuidad de curación (#3597, #3618, #3840). |
 | `ca-guion-narrado` (antes CA-003) | **Implementado + mergeado** | APPROVED 95/100 y squash-merge a `main` en `5df9ba0` (#3936, #3927). | Narración accesible, referencias inline, configuración aprobada por usuario, validación final del Director, bloqueo por vacíos y frontera estricta con storyboard (#3598, #3620). |
-| `ca-storyboard-dual-channel` (antes CA-004) | **Solo definido** | Artifact formalizado, con decisiones pendientes y sin evidencia de construcción/validación/merge (#3600, #3621, #3631). | Define segmentos, duración, ritmo, posiciones y correspondencia audio-visual; todavía no es una operación implementada (#3600). |
-| `ca-produccion-video-sincronizado` (antes CA-005) | **Solo definido** | Artifact formalizado, con decisiones pendientes y sin evidencia de construcción/validación/merge (#3601, #3622, #3631). | Define producción desde storyboard aprobado hacia Hyperframes, manejo de fallo y asociación al storyboard; todavía no es una operación implementada (#3601). |
+| `ca-storyboard-dual-channel` (antes CA-004) | **Implementado + mergeado** | Artifact formalizado y cerrado; soporte determinístico dual-channel implementado y mergeado en `d107d8e` (2026-08-23) (#3600, #4411, #4415). | Define segmentos, duración, ritmo, posiciones y correspondencia audio-visual; operación implementada con validación previa del usuario y handoff hacia producción (#4411). |
+| `ca-produccion-video-sincronizado` (antes CA-005) | **Implementado + mergeado** | Ciclo implementación→review→merge cerrado bajo --auto (2026-08-24, `3f3954a`) (#3601, #4310). | Define y opera producción desde storyboard aprobado hacia Hyperframes, manejo de fallo y asociación al storyboard; consumido por el agente Editor (#4429). |
 | `ca-hooks-introductorios` (antes CA-007) | **Solo definido** | Artifact formalizado, con decisiones pendientes y sin evidencia de construcción/validación/merge (#3603, #3624, #3631). | Define hooks como complemento de una pieza principal; su producción, inclusión y reglas siguen abiertas (#3603). |
-| CA futuro de creación de agentes de OpenCode | **Solo definido / pendiente** | Decisión explícita de postergarlo al final; agentes aún no construidos (#3768, #3769). | Materializaría Director, síntesis, guion, storyboard y editor; no debe confundirse con los CAs de soporte ya implementados (#3768, #3662). |
+| `ca-agente-director` | **Implementado + mergeado** | Agente primario materializado en `agents/director.md` (`cliplab-director`); merge `a76590e` (2026-08-25) (#4208). | Cura, decide y valida oportunidades y guiones; única puerta de entrada conversacional del pipeline. |
+| `ca-agente-mano-derecha` | **Implementado + mergeado** | Subagente materializado en `agents/sintesis.md` (`cliplab-sintesis`); merge `348be00` (2026-08-26). | Síntesis de contexto orientada a decisión, solo invocado por el Director. |
+| `ca-agente-guionista` | **Implementado + mergeado** | Subagente materializado en `agents/guionista.md` (`cliplab-guionista`); merge `4b40549` (2026-08-26) (#4386). | Escribe el guion narrado validable por el Director, con referencias inline. |
+| `ca-agente-storyboard` | **Implementado + mergeado** | Subagente materializado en `agents/storyboard.md` (`cliplab-storyboard`); merge `c413040` (2026-08-26) (#4411, #4415). | Traduce el guion validado en storyboard dual-channel trazable. |
+| `ca-agente-editor` | **Implementado + mergeado** | Subagente materializado en `agents/editor.md` (`cliplab-editor`); merge `3ffb6d4` (2026-08-26) (#4429, #4432). | Produce el video final sincronizado desde paquete AUTHORIZED_FOR_PRODUCTION (Hyperframes). |
 
 No se encontró en las memorias consultadas un CA del pipeline clasificado como rechazado u obsoleto. Las definiciones de guion narrado sí reemplazan una versión anterior del mismo CA, pero el CA vigente está marcado `complete` (#3598, #3620, #3936).
 
@@ -191,6 +195,8 @@ Las referencias inline del documento apuntan a observaciones Engram del proyecto
 | #3588, #3631, #3626, #3662 | Inventario, trazabilidad, orden y arquitectura general de los CAs. |
 | #3768 | CA futuro para creación de agentes en OpenCode. |
 | #3941 | Alcance de esta actualización documental y fecha de corte de la tarea. |
+| #4208, #4386, #4411, #4415, #4429, #4432, #4310 | Materialización de los 5 agentes de contenido (Director, Síntesis, Guionista, Storyboard, Editor) y cierre de producción bajo --auto (2026-08-25/26). |
+| #4187, #4190 | Capa de memoria de los 5 agentes (skill en `skill/convenciones-memoria-agentes-contenido/`) y convención 7 de continuidad (2026-08-26). |
 
 ---
 
