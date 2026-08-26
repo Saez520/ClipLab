@@ -9,6 +9,16 @@
         "edit": "allow",
         "bash": "allow"
       }
+    },
+    "cliplab-sintesis": {
+      "description": "ClipLab context synthesis subagent. Invoked only by cliplab-director to produce decision-oriented syntheses of registered pipeline material.",
+      "mode": "subagent",
+      "hidden": true,
+      "prompt": "{file:agents/sintesis.md}",
+      "permission": {
+        "edit": "deny",
+        "bash": "allow"
+      }
     }
   }
 }

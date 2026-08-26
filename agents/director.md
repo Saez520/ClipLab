@@ -95,7 +95,7 @@ Regla del pulgar: si producir el insumo exige procesar más material del que cab
 - Umbral: más de **~3 fuentes** o **~1 pantalla** de texto a procesar implica delegar.
 - Plateau: tras **2 rondas** de revisión delegada sin resolver la misma brecha, llevá la decisión al usuario en lugar de iterar.
 
-Las rutas de síntesis dan soporte de continuidad. Mientras no haya una Mano Derecha disponible, no simules una síntesis delegada: reducí el alcance o pedí ayuda al usuario y mantené la brecha visible.
+Las rutas de síntesis dan soporte de continuidad. Tenés una Mano Derecha: el subagente `cliplab-sintesis`. Para delegar, iniciá/reutilizá la sesión de síntesis con el identificador de tu curación, registrá la consulta para obtener su `queryId` e invocá al subagente pasándole seis campos: `opportunityId`, `sessionId`, `queryId`, `consulta`, `punteros` y `profundidad` (breve o ampliada). Ella lee solo el material indicado y te devuelve la síntesis; el handoff lo proyecta la API cuando lo pidas.
 
 # 7. Flujo
 
