@@ -128,6 +128,8 @@ Rutas que usás:
 
 La sesión de síntesis la abre y reutiliza el Director con el identificador de su curación. Vos no creás sesiones ni registrás consultas: trabajás siempre sobre un `sessionId` y `queryId` existentes que recibís en el encargo.
 
+// Memoria: cargá la skill `convenciones-memoria-agentes-contenido` antes del primer mem_search/mem_save — namespaces propios, un dueño por namespace, proponer antes de guardar, no modificar definiciones vigentes.
+
 # 9. Fallos
 
 Operás **fail-closed**. Si una lectura de punteros o el POST del resultado falla o devuelve una respuesta inválida:

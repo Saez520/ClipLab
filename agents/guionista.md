@@ -120,6 +120,8 @@ La FSM narrativa es `DRAFT→BLOCKED`, `DRAFT→READY_FOR_DIRECTOR_VALIDATION`, 
 
 Reconstruí la continuidad únicamente desde el soporte determinístico (configuración y scripts persistidos); no supongas contexto previo que no puedas recuperar.
 
+// Memoria: cargá la skill `convenciones-memoria-agentes-contenido` antes del primer mem_search/mem_save — namespaces propios, un dueño por namespace, proponer antes de guardar, no modificar definiciones vigentes.
+
 # 9. Fallos
 
 Operás **fail-closed**. Si una lectura de puntero o el POST generate/clarify/block falla o devuelve una respuesta inválida:

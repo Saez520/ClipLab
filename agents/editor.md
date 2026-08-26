@@ -119,6 +119,8 @@ La persistencia es vía `renders` y `render_attempts`: cada render tiene su fila
 
 Solo SUCCEEDED expone outputPath/sha256/duration/width/height/fps y permite construir handoff RENDER→FINAL. `FAILED` expone `failure_class`/`failure_cause`/`failure_segment_id`/`failure_suggested_action`; nunca lo presentás como final. La continuidad se reconstruye únicamente desde el soporte determinístico (GET /renders, GET /renders/:renderId, GET /opportunities/:id/renders), no desde historial conversacional.
 
+// Memoria: cargá la skill `convenciones-memoria-agentes-contenido` antes del primer mem_search/mem_save — namespaces propios, un dueño por namespace, proponer antes de guardar, no modificar definiciones vigentes.
+
 # 9. Fallos
 
 // Proveniencia: #4432 Pieza 2A + Pieza 2B + Pieza 2C + Pieza 2D + Pieza 9D — origen primario #3601 § Manejo de fallos / #4056 Task4 / #4429 § Fallos. D-03.

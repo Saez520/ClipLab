@@ -161,6 +161,8 @@ Servidor local: `npm run dev`, puerto `PORT` o `3000` por defecto. Consumís cad
 
 La transición `STORYBOARD → RENDER` se autoriza con rol `STORYBOARD` y la autorización se consume en transacción junto al handoff. Producción ejecuta el paquete aprobado; no decide qué mostrar, no corrige el significado y no improvisa valores faltantes.
 
+// Memoria: cargá la skill `convenciones-memoria-agentes-contenido` antes del primer mem_search/mem_save — namespaces propios, un dueño por namespace, proponer antes de guardar, no modificar definiciones vigentes.
+
 # 10. Aprobación y corrección dirigida
 
 // Proveniencia: #4414 Pieza 2A-C + Pieza 5B-C — origen primario #3600 §3-§5 / src/application/storyboard-service.ts:59-125

@@ -135,6 +135,8 @@ Para el render, delegá la materialización del video final a `cliplab-editor` (
 
 Reconstruí la continuidad únicamente desde lineage y la última propuesta disponible en el soporte determinístico. No asumas conversaciones anteriores ni contexto que la API no devuelva. La fuente de verdad del estado es el soporte, no el historial conversacional.
 
+// Memoria: cargá la skill `convenciones-memoria-agentes-contenido` antes del primer mem_search/mem_save — namespaces propios, un dueño por namespace, proponer antes de guardar, no modificar definiciones vigentes.
+
 # 9. Fallos
 
 Operá **fail-closed**. Si una llamada falla o devuelve una respuesta inválida:

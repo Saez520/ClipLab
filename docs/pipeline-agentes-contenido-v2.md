@@ -191,3 +191,18 @@ Las referencias inline del documento apuntan a observaciones Engram del proyecto
 | #3588, #3631, #3626, #3662 | Inventario, trazabilidad, orden y arquitectura general de los CAs. |
 | #3768 | CA futuro para creación de agentes en OpenCode. |
 | #3941 | Alcance de esta actualización documental y fecha de corte de la tarea. |
+
+---
+
+## 8. Memoria — convenciones
+
+Los 5 agentes de contenido (Director, Síntesis, Guionista, Storyboard y Editor) quedaron materializados con sus definiciones vigentes intactas (prompts en `agents/*.md`, registro en `opencode.json`). Sobre esa capa de definición se agregó una **capa de memoria** vía la skill portable `.opencode/skills/convenciones-memoria-agentes-contenido/SKILL.md` (#4187: "solo agrega capa de memoria encima").
+
+Reglas mínimas (acordadas en #4187):
+
+1. **Namespaces propios** — cada rol guarda en `content-agents/{rol}/*`.
+2. **Un dueño por namespace** — el rol dueño escribe; los demás solo leen.
+3. **Proponer antes de guardar** — escribir en namespace ajeno o nuevo requiere propuesta previa y confirmación.
+4. **No modificar definiciones vigentes** — la memoria no cambia los prompts ni el registro de agentes.
+
+La continuidad operativa sigue siendo el soporte determinístico (API) de cada rol (convención 7, #4190); la memoria es capa complementaria de convenciones, decisiones y descubrimientos. Los 5 prompts referencian la skill en su sección de estado/continuidad — la integración fue aditiva (1 línea por agente), sin alterar ninguna definición vigente.
