@@ -30,7 +30,7 @@ On top of the deterministic MVP API, the project ships **5 content agents** mate
 | Storyboard (dual-channel storyboard) | `cliplab-storyboard` | `agents/storyboard.md` | subagent | edit allow, bash allow |
 | Editor (final synchronized MP4 via Hyperframes) | `cliplab-editor` | `agents/editor.md` | subagent | edit allow, bash allow |
 
-Síntesis, Guionista, Storyboard and Editor are invoked only by the Director. The content pipeline (states, decisions, traceability) is documented in `docs/pipeline-agentes-contenido-v2.md` (current source of truth; `docs/pipeline-agentes-contenido.md` keeps the original conversational design).
+Síntesis, Guionista, Storyboard and Editor are invoked only by the Director. The content pipeline (states, decisions, traceability) is documented in `docs/pipeline-agentes-contenido.md` (current source of truth).
 
 ## Memory — conventions skill
 
@@ -38,8 +38,7 @@ The 5 content agents use a complementary memory layer via the skill `skill/conve
 
 ## Docs
 
-- `docs/pipeline-agentes-contenido-v2.md` — content agent pipeline: flow, decisions, CA status table and traceability sources (v2, current source of truth).
-- `docs/pipeline-agentes-contenido.md` — original conversational design (v1, superseded by v2).
+- `docs/pipeline-agentes-contenido.md` — content agent pipeline: flow, decisions, CA status table and traceability sources (current source of truth).
 - `docs/estrategia-contenido-doble-canal.md` — dual-channel (audio/visual) content strategy, with status note.
 - `docs/investigacion-hyperframes-roles-agentes.md` — Hyperframes and role research (raw reference material, with status note).
 

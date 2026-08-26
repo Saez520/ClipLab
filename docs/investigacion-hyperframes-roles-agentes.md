@@ -201,7 +201,7 @@ Esto significa que la **lógica de decisión de cada rol es portable** (qué pre
 
 ## 8. Estado al 2026-08-26 (actualización documental — hotfix HF-documentacion-proyecto)
 
-Este documento es material de referencia crudo (2026-08-22) y se conserva como histórico. Actualización del estado real en `main` @ `0544df4` (fuente de estado: `docs/pipeline-agentes-contenido-v2.md`):
+Este documento es material de referencia crudo (2026-08-22) y se conserva como histórico. Actualización del estado real en `main` @ `0544df4` (fuente de estado: `docs/pipeline-agentes-contenido.md`):
 
 - `ca-storyboard-dual-channel` fue **implementado y mergeado** (2026-08-23, `d107d8e`; #3600, #4411) — ya no es "solo definido" como indicaba el §1 punto 3.
 - `ca-produccion-video-sincronizado` fue **implementado y mergeado** (2026-08-24, `3f3954a`; #3601, #4310). La pregunta §7.3 (entrada del Editor vía el router `/hyperframes`) sigue sin respuesta literal en los prompts materializados: `agents/editor.md` no menciona el router ni los creation workflows (verificado 2026-08-26); la definición vigente del Editor opera contra "Hyperframes CLI with serial queue and failure classification" según `opencode.json`.

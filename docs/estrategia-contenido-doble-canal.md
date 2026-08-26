@@ -151,7 +151,7 @@ Lista original de Saez, clasificada en: descartar / unificar / cambiar foco / ac
 
 ## 8. Estado al 2026-08-26 (actualización documental — hotfix HF-documentacion-proyecto)
 
-Este documento es material de estrategia (conversación, agosto 2026) y se conserva como histórico. El estado real del pipeline que lo soporta, en `main` @ `0544df4` (fuente de estado: `docs/pipeline-agentes-contenido-v2.md`):
+Este documento es material de estrategia (conversación, agosto 2026) y se conserva como histórico. El estado real del pipeline que lo soporta, en `main` @ `0544df4` (fuente de estado: `docs/pipeline-agentes-contenido.md`):
 
 - El **doble canal sincronizado** está soportado por CAs implementados y mergeados: `ca-storyboard-dual-channel` (merge `d107d8e`, 2026-08-23; #3600, #4411) y `ca-produccion-video-sincronizado` (merge `3f3954a`, 2026-08-24; #3601, #4310).
 - Los **5 agentes de contenido** están materializados en `agents/*.md` (registro en `opencode.json`): Director, Síntesis, Guionista, Storyboard y Editor (`cliplab-director|sintesis|guionista|storyboard|editor`) — merges 2026-08-25/26 (`a76590e` → `3ffb6d4`).
