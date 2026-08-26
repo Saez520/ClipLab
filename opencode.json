@@ -39,6 +39,16 @@
         "edit": "allow",
         "bash": "allow"
       }
+    },
+    "cliplab-editor": {
+      "description": "ClipLab editor subagent. Invoked only by cliplab-director to produce the final synchronized MP4 from AUTHORIZED_FOR_PRODUCTION via verified gate, deterministic composition and Hyperframes CLI with serial queue and failure classification.",
+      "mode": "subagent",
+      "hidden": true,
+      "prompt": "{file:agents/editor.md}",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow"
+      }
     }
   }
 }

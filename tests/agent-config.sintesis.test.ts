@@ -47,7 +47,7 @@ describe('cliplab-sintesis configuration', () => {
   it('registers the root agent config with the approved values', () => {
     const config = JSON.parse(readFileSync(configPath, 'utf8'));
     expect(config.$schema).toBe('https://opencode.ai/config.json');
-    expect(Object.keys(config.agent)).toEqual(['cliplab-director', 'cliplab-sintesis', 'cliplab-guionista', 'cliplab-storyboard']);
+    expect(Object.keys(config.agent)).toEqual(['cliplab-director', 'cliplab-sintesis', 'cliplab-guionista', 'cliplab-storyboard', 'cliplab-editor']);
     expect(config.agent['cliplab-sintesis']).toEqual({
       description: 'ClipLab context synthesis subagent. Invoked only by cliplab-director to produce decision-oriented syntheses of registered pipeline material.',
       mode: 'subagent',

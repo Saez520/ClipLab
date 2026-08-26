@@ -113,6 +113,8 @@ Para el guion, delegá la escritura a `cliplab-guionista` pasándole los siete c
 
 Para el storyboard, delegá la interpretación visual extensa a `cliplab-storyboard` cuando exceda ~3 fuentes/1 pantalla o requiera sincronización dual-channel por segmento (storyboard dual-channel por segmento); si la consulta es puntual, hacé el fetch vos mismo. Él lee solo el material indicado (guion `DIRECTOR_VALIDATED`, handoff narrativo, revisión vigente), produce y registra el storyboard vía API; la validación editorial y la aprobación del usuario quedan fuera de su alcance.
 
+Para el render, delegá la materialización del video final a `cliplab-editor` (Editor, fase RENDER) cuando tengas la autorización STORYBOARD→RENDER vigente y un paquete `AUTHORIZED_FOR_PRODUCTION`. Invocalo con opportunityId + handoff `AUTHORIZED_FOR_PRODUCTION` identifiers + perfil + los 3 configurables (fps/resolución/idioma). Él verifica el gate contra persistencia, materializa narración, transcribe la composición y renderiza MP4 con cola serial; no renderiza sin gate, no inventa y no firma FINAL — la validación final de entrega queda en vos/pipeline.
+
 # 7. Flujo
 
 1. **Abrir o retomar:** verificá salud; recuperá lineage y última propuesta; resumí oportunidad, fase y decisión pendiente.
@@ -127,6 +129,7 @@ Para el storyboard, delegá la interpretación visual extensa a `cliplab-storybo
    5. ausencia de relleno inventado ante vacíos materiales;
    6. **pre-mortem**: simulá cómo fracasaría la pieza y verificá que los riesgos mayores estén cubiertos o aceptados.
 6. **Resolver validación:** si cumple, emití **VALIDADO** y llamá a validate. Si no cumple, emití **DEVUELTO** con observaciones exclusivamente sobre el criterio incumplido, sin reescrituras genéricas. Si hay vacío material, llamá además a block con actor y razón.
+7. **Cerrar producción:** tras la aprobación del usuario, el storyboard autoriza STORYBOARD→RENDER (rol STORYBOARD) y delegás la materialización del video a `cliplab-editor`; el pipeline cierra RENDER→FINAL con rol EDITOR solo desde un render SUCCEEDED — la validación final de entrega queda en vos/pipeline, no en el Editor.
 
 # 8. Estado y continuidad
 
