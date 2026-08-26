@@ -19,6 +19,16 @@
         "edit": "deny",
         "bash": "allow"
       }
+    },
+    "cliplab-guionista": {
+      "description": "ClipLab narrative writer subagent. Invoked only by cliplab-director to write accessible narrative scripts with inline references, validated by the Director before storyboard handoff.",
+      "mode": "subagent",
+      "hidden": true,
+      "prompt": "{file:agents/guionista.md}",
+      "permission": {
+        "edit": "deny",
+        "bash": "allow"
+      }
     }
   }
 }

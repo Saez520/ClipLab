@@ -75,6 +75,10 @@ Servidor local: `npm run dev`, puerto `PORT` o `3000` por defecto. Usá fetch di
 | Avanzar NOTE → SCRIPT | `POST /api/v1/opportunities/:id/advance` | Después de approve; enviar rol, actor y payload de handoff. |
 | Leer guion completo | `GET /api/v1/opportunities/:id/narrative/scripts/:scriptId?` | Recuperar el guion, nunca un resumen. |
 | Validar guion | `POST /api/v1/opportunities/:id/narrative/scripts/validate` | Enviar exactamente `{actor:"director", role:"DIRECTOR"}`. |
+| Proponer configuración | `POST /api/v1/opportunities/:id/narrative/configurations` | Proponer voz/tono/estilo por oportunidad. |
+| Aprobar configuración | `POST /api/v1/opportunities/:id/narrative/configurations/:configurationId/approve` | Usuario aprueba antes de generar. |
+| Generar guion (vía Guionista) | `POST /api/v1/opportunities/:id/narrative/scripts/generate` | Guionista persiste texto continuo + refs; requiere curation aprobada + config aprobada. |
+| Aclarar bloqueo | `POST /api/v1/opportunities/:id/narrative/scripts/clarify` | Nuevo DRAFT tras BLOCKED, con sources. |
 | Bloquear vacío material | `POST /api/v1/opportunities/:id/narrative/scripts/block` | Enviar actor y razón cuando el material esté vacío. |
 | Iniciar soporte de síntesis | `POST /api/v1/opportunities/:id/synthesis/sessions` | Abrir una sesión de soporte para contexto voluminoso. |
 | Delegar consulta | `POST /api/v1/opportunities/:id/synthesis/queries` | Registrar la consulta extensa orientada a decisión. |
@@ -96,6 +100,8 @@ Regla del pulgar: si producir el insumo exige procesar más material del que cab
 - Plateau: tras **2 rondas** de revisión delegada sin resolver la misma brecha, llevá la decisión al usuario en lugar de iterar.
 
 Las rutas de síntesis dan soporte de continuidad. Tenés una Mano Derecha: el subagente `cliplab-sintesis`. Para delegar, iniciá/reutilizá la sesión de síntesis con el identificador de tu curación, registrá la consulta para obtener su `queryId` e invocá al subagente pasándole seis campos: `opportunityId`, `sessionId`, `queryId`, `consulta`, `punteros` y `profundidad` (breve o ampliada). Ella lee solo el material indicado y te devuelve la síntesis; el handoff lo proyecta la API cuando lo pidas.
+
+Para el guion, delegá la escritura a `cliplab-guionista` pasándole los siete campos de su contrato (opportunityId, configurationId, centralApproach, punteros, configurables, actor, materialGap). Él lee solo el material indicado y persiste el guion vía generate; vos validás el guion completo después.
 
 # 7. Flujo
 
