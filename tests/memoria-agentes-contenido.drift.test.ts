@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const root = resolve(process.cwd());
-const skillPath = resolve(root, '.opencode/skills/convenciones-memoria-agentes-contenido/SKILL.md');
+const skillPath = resolve(root, 'skill/convenciones-memoria-agentes-contenido/SKILL.md');
 
 const AGENTS = ['director', 'editor', 'guionista', 'sintesis', 'storyboard'];
 

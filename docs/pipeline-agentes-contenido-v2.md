@@ -196,7 +196,7 @@ Las referencias inline del documento apuntan a observaciones Engram del proyecto
 
 ## 8. Memoria — convenciones
 
-Los 5 agentes de contenido (Director, Síntesis, Guionista, Storyboard y Editor) quedaron materializados con sus definiciones vigentes intactas (prompts en `agents/*.md`, registro en `opencode.json`). Sobre esa capa de definición se agregó una **capa de memoria** vía la skill portable `.opencode/skills/convenciones-memoria-agentes-contenido/SKILL.md` (#4187: "solo agrega capa de memoria encima").
+Los 5 agentes de contenido (Director, Síntesis, Guionista, Storyboard y Editor) quedaron materializados con sus definiciones vigentes intactas (prompts en `agents/*.md`, registro en `opencode.json`). Sobre esa capa de definición se agregó una **capa de memoria** vía la skill portable `skill/convenciones-memoria-agentes-contenido/SKILL.md` en la raíz versionada (#4187: "solo agrega capa de memoria encima").
 
 Reglas mínimas (acordadas en #4187):
 
