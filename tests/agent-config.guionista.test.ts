@@ -47,7 +47,7 @@ describe('cliplab-guionista configuration', () => {
   it('registers the root agent config with the approved values', () => {
     const config = JSON.parse(readFileSync(configPath, 'utf8'));
     expect(config.$schema).toBe('https://opencode.ai/config.json');
-    expect(Object.keys(config.agent)).toEqual(['cliplab-director', 'cliplab-sintesis', 'cliplab-guionista']);
+    expect(Object.keys(config.agent)).toEqual(['cliplab-director', 'cliplab-sintesis', 'cliplab-guionista', 'cliplab-storyboard']);
     expect(config.agent['cliplab-guionista']).toEqual({
       description: 'ClipLab narrative writer subagent. Invoked only by cliplab-director to write accessible narrative scripts with inline references, validated by the Director before storyboard handoff.',
       mode: 'subagent',

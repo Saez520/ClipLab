@@ -29,6 +29,16 @@
         "edit": "deny",
         "bash": "allow"
       }
+    },
+    "cliplab-storyboard": {
+      "description": "ClipLab storyboard subagent. Invoked only by cliplab-director to translate Director-validated scripts into traceable dual-channel storyboards with per-segment correction and user approval gate before render handoff.",
+      "mode": "subagent",
+      "hidden": true,
+      "prompt": "{file:agents/storyboard.md}",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow"
+      }
     }
   }
 }

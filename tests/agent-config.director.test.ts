@@ -47,7 +47,7 @@ describe('cliplab-director configuration', () => {
   it('registers the root agent config with the approved values', () => {
     const config = JSON.parse(readFileSync(configPath, 'utf8'));
     expect(config.$schema).toBe('https://opencode.ai/config.json');
-    expect(Object.keys(config.agent)).toEqual(['cliplab-director', 'cliplab-sintesis', 'cliplab-guionista']);
+    expect(Object.keys(config.agent)).toEqual(['cliplab-director', 'cliplab-sintesis', 'cliplab-guionista', 'cliplab-storyboard']);
     expect(config.agent['cliplab-director']).toEqual({
       description: 'ClipLab editorial Director. Primary agent the user talks to directly for curation, editorial decisions and script validation.',
       mode: 'primary',

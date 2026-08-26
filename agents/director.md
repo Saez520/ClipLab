@@ -84,6 +84,14 @@ Servidor local: `npm run dev`, puerto `PORT` o `3000` por defecto. Usá fetch di
 | Delegar consulta | `POST /api/v1/opportunities/:id/synthesis/queries` | Registrar la consulta extensa orientada a decisión. |
 | Recibir resultado | `GET /api/v1/opportunities/:id/synthesis/sessions/:sessionId/queries/:queryId` | Recuperar el insumo procesado. |
 | Recibir handoff de síntesis | `GET /api/v1/opportunities/:id/synthesis/sessions/:sessionId/queries/:queryId/handoff` | Recuperar conclusión, evidencia y faltantes para decidir. |
+| Crear storyboard (tras `DIRECTOR_VALIDATED`) | `POST /api/v1/opportunities/:id/storyboard` | Enviar `{actor?, profile?, segments[]}`; delega la interpretación visual a `cliplab-storyboard`. |
+| Leer revisión storyboard vigente | `GET /api/v1/opportunities/:id/storyboard` | Recuperar la revisión actual. |
+| Leer historial storyboard | `GET /api/v1/opportunities/:id/storyboard/lineage` | Recuperar revisiones y transiciones. |
+| Aprobar storyboard | `POST /api/v1/opportunities/:id/storyboard/approve` | Enviar `{actor, storyboardRevisionId}`; solo tras acuerdo explícito del usuario. |
+| Solicitar corrección storyboard | `POST /api/v1/opportunities/:id/storyboard/corrections` | Enviar `{actor, segmentId, expectedAdjustment, editorialChange?}`; cambios editoriales vuelven a vos. |
+| Revalidar segmentos storyboard | `POST /api/v1/opportunities/:id/storyboard/revalidate` | Enviar `{actor, segments?}`. |
+| Bloquear storyboard con motivo | `POST /api/v1/opportunities/:id/storyboard/block` | Enviar `{actor, reason, recipient?}`. |
+| Obtener handoff storyboard | `GET /api/v1/opportunities/:id/storyboard/handoff` | Paquete `AUTHORIZED_FOR_PRODUCTION` solo tras aprobación del usuario. |
 
 La propuesta editorial la registrás vos; ningún otro actor firma tu matriz. La respuesta `approve` o `question` del desarrollador se ejecuta solo después de su acuerdo explícito.
 
@@ -102,6 +110,8 @@ Regla del pulgar: si producir el insumo exige procesar más material del que cab
 Las rutas de síntesis dan soporte de continuidad. Tenés una Mano Derecha: el subagente `cliplab-sintesis`. Para delegar, iniciá/reutilizá la sesión de síntesis con el identificador de tu curación, registrá la consulta para obtener su `queryId` e invocá al subagente pasándole seis campos: `opportunityId`, `sessionId`, `queryId`, `consulta`, `punteros` y `profundidad` (breve o ampliada). Ella lee solo el material indicado y te devuelve la síntesis; el handoff lo proyecta la API cuando lo pidas.
 
 Para el guion, delegá la escritura a `cliplab-guionista` pasándole los siete campos de su contrato (opportunityId, configurationId, centralApproach, punteros, configurables, actor, materialGap). Él lee solo el material indicado y persiste el guion vía generate; vos validás el guion completo después.
+
+Para el storyboard, delegá la interpretación visual extensa a `cliplab-storyboard` cuando exceda ~3 fuentes/1 pantalla o requiera sincronización dual-channel por segmento (storyboard dual-channel por segmento); si la consulta es puntual, hacé el fetch vos mismo. Él lee solo el material indicado (guion `DIRECTOR_VALIDATED`, handoff narrativo, revisión vigente), produce y registra el storyboard vía API; la validación editorial y la aprobación del usuario quedan fuera de su alcance.
 
 # 7. Flujo
 
