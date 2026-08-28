@@ -13,3 +13,4 @@ data/
 *.sqlite
 .opencode/
 .worktrees/
+.temp/
