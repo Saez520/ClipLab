@@ -3,11 +3,17 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { RenderEnvironmentError, RenderSpecificationError } from '../../domain/errors.js';
-import { MAX_RATE_ADAPTATION_PASSES, type VoiceSynthesis, type VoiceSynthesizer } from '../../domain/render.js';
+import {
+  MAX_NARRATION_BISECTION_PASSES,
+  MAX_NARRATION_GAP_SECONDS,
+  MAX_NARRATION_RATE_WPM,
+  MIN_NARRATION_RATE_WPM,
+  type VoiceSynthesis,
+  type VoiceSynthesizer
+} from '../../domain/render.js';
 
 export type CommandRunner = (command: string, args: string[], options?: { timeoutMs?: number }) => Promise<{ stdout: string; stderr: string }>;
 
-const BASE_RATE_WORDS_PER_MINUTE = 175;
 const DEFAULT_COMMAND_TIMEOUT_MS = 120_000;
 
 function defaultRun(command: string, args: string[], options?: { timeoutMs?: number }): Promise<{ stdout: string; stderr: string }> {
@@ -84,15 +90,17 @@ export interface MacosSayVoiceSynthesizerOptions {
    */
   ttsCommandOverride?: string;
   voiceLocalePrefix?: string;
-  baseRateWordsPerMinute?: number;
   commandTimeoutMs?: number;
 }
 
 /**
- * Offline macOS narration synthesis via `say` with deterministic adaptive rate:
- * when the natural narration exceeds the approved slot the text is re-synthesized
- * at a proportionally higher rate (bounded passes). Audio is never trimmed and
- * approved slots are never altered. Output normalized to 48kHz stereo WAV.
+ * Offline macOS narration synthesis via `say` with bounded bisection rate search:
+ * starts at MIN_NARRATION_RATE_WPM (most natural) and only speeds up via
+ * deterministic bisection when the text exceeds the approved slot. A hard cap
+ * (MAX_NARRATION_RATE_WPM) prevents the incomprehensible rates produced by the
+ * old proportional over-compression; when the text cannot fit at or below the
+ * cap it fails cleanly with RenderSpecificationError. Audio is never trimmed
+ * and approved slots are never altered. Output normalized to 48kHz stereo WAV.
  */
 export class MacosSayVoiceSynthesizer implements VoiceSynthesizer {
   private readonly run: CommandRunner;
@@ -101,7 +109,6 @@ export class MacosSayVoiceSynthesizer implements VoiceSynthesizer {
   private readonly ffprobeCommand: string;
   private readonly ttsCommandOverride?: string;
   private readonly voiceLocalePrefix: string;
-  private readonly baseRate: number;
   private readonly commandTimeoutMs: number;
 
   constructor(options: MacosSayVoiceSynthesizerOptions = {}) {
@@ -111,7 +118,6 @@ export class MacosSayVoiceSynthesizer implements VoiceSynthesizer {
     this.ffprobeCommand = options.ffprobeCommand ?? 'ffprobe';
     this.ttsCommandOverride = options.ttsCommandOverride ?? process.env.CLIPLAB_TTS_COMMAND;
     this.voiceLocalePrefix = options.voiceLocalePrefix ?? 'es';
-    this.baseRate = options.baseRateWordsPerMinute ?? BASE_RATE_WORDS_PER_MINUTE;
     this.commandTimeoutMs = options.commandTimeoutMs ?? DEFAULT_COMMAND_TIMEOUT_MS;
   }
 
@@ -145,31 +151,118 @@ export class MacosSayVoiceSynthesizer implements VoiceSynthesizer {
     mkdirSync(dir, { recursive: true });
     const stem = `narration-${createHash('sha1').update(text, 'utf8').digest('hex').slice(0, 16)}`;
 
-    // Deterministic rate adaptation: bounded passes, proportional monotonic
-    // speed-up, audio never trimmed, approved slots never altered.
-    let rate = this.baseRate;
-    let producedSeconds = 0;
-    let lastIntermediate = '';
+    // When a TTS command override is active it replaces the whole synthesis
+    // pipeline — including rate adaptation, which the override does not support.
+    // Synthesize once and check the result directly against the slot.
+    if (this.ttsCommandOverride) {
+      return this.synthesizeOnceWithOverride(text, targetDurationSeconds, dir, stem);
+    }
+
+    // Native `say` pipeline: bounded bisection rate search. Start at the slowest
+    // rate (most natural narration); only speed up when the text exceeds the
+    // approved slot. A hard cap (MAX_NARRATION_RATE_WPM) replaces the old
+    // proportional over-compression that produced 345–438 WPM. When the text
+    // cannot fit at or below the cap, or leaves a gap larger than
+    // MAX_NARRATION_GAP_SECONDS, fail cleanly.
     const intermediates: string[] = [];
-    for (let pass = 1; pass <= MAX_RATE_ADAPTATION_PASSES; pass += 1) {
+    let lastIntermediate = '';
+    let producedSeconds = 0;
+
+    // Pass 1: slowest rate — if it fits with an acceptable gap, we are done.
+    let passIndex = 1;
+    lastIntermediate = join(dir, `${stem}-p${passIndex}.aiff`);
+    intermediates.push(lastIntermediate);
+    await this.synthesizeOnce(text, MIN_NARRATION_RATE_WPM, lastIntermediate);
+    producedSeconds = await this.measureDuration(lastIntermediate);
+
+    if (producedSeconds > targetDurationSeconds) {
+      // Text exceeds the slot even at the slowest rate: bisect upward to find
+      // the lowest rate that fits, capped at MAX_NARRATION_RATE_WPM.
+      let lo = MIN_NARRATION_RATE_WPM;
+      let hi = MAX_NARRATION_RATE_WPM;
+      let bestRate = MAX_NARRATION_RATE_WPM;
+      let bestProduced = producedSeconds;
+      let bestIntermediate = lastIntermediate;
+      while (lo <= hi && passIndex < MAX_NARRATION_BISECTION_PASSES) {
+        passIndex += 1;
+        const mid = Math.floor((lo + hi) / 2);
+        const candidate = join(dir, `${stem}-p${passIndex}.aiff`);
+        intermediates.push(candidate);
+        await this.synthesizeOnce(text, mid, candidate);
+        const candidateSeconds = await this.measureDuration(candidate);
+        if (candidateSeconds <= targetDurationSeconds) {
+          // Fits: this rate is viable; remember it and try to go slower.
+          bestRate = mid;
+          bestProduced = candidateSeconds;
+          bestIntermediate = candidate;
+          hi = mid - 1;
+        } else {
+          // Still too long: need a faster rate.
+          lo = mid + 1;
+        }
+      }
+      if (bestProduced > targetDurationSeconds) {
+        for (const intermediate of intermediates) rmSync(intermediate, { force: true });
+        throw new RenderSpecificationError(
+          `Narration exceeds the approved slot even at ${MAX_NARRATION_RATE_WPM} WPM: the approved slot does not admit its text`,
+          { segmentText: text, slotSeconds: targetDurationSeconds, producedSeconds: bestProduced }
+        );
+      }
+      // Verify the gap at the lowest viable rate is acceptable.
+      const gap = targetDurationSeconds - bestProduced;
+      if (gap > MAX_NARRATION_GAP_SECONDS) {
+        for (const intermediate of intermediates) rmSync(intermediate, { force: true });
+        throw new RenderSpecificationError(
+          `Narration leaves an unacceptable silence gap (${gap.toFixed(2)}s > ${MAX_NARRATION_GAP_SECONDS}s) at the lowest viable rate (${bestRate} WPM)`,
+          { segmentText: text, slotSeconds: targetDurationSeconds, producedSeconds: bestProduced }
+        );
+      }
+      lastIntermediate = bestIntermediate;
+      producedSeconds = bestProduced;
+    } else {
+      // Fits at the slowest rate: verify the gap is acceptable.
+      const gap = targetDurationSeconds - producedSeconds;
+      if (gap > MAX_NARRATION_GAP_SECONDS) {
+        for (const intermediate of intermediates) rmSync(intermediate, { force: true });
+        throw new RenderSpecificationError(
+          `Narration leaves an unacceptable silence gap (${gap.toFixed(2)}s > ${MAX_NARRATION_GAP_SECONDS}s) even at the slowest rate (${MIN_NARRATION_RATE_WPM} WPM)`,
+          { segmentText: text, slotSeconds: targetDurationSeconds, producedSeconds }
+        );
+      }
+    }
+
+    const wavPath = join(dir, `${stem}.wav`);
+    await this.run(this.ffmpegCommand, ['-y', '-i', lastIntermediate, '-ar', '48000', '-ac', '2', wavPath], { timeoutMs: this.commandTimeoutMs });
+    const wavSeconds = await this.measureDuration(wavPath);
+    for (const intermediate of intermediates) rmSync(intermediate, { force: true });
+    return { filePath: wavPath, durationSeconds: wavSeconds };
+  }
+
+  /**
+   * Multi-pass synthesis path for the TTS command override. The override
+   * replaces the whole pipeline — including rate adaptation, which it does not
+   * support — so each pass synthesizes at a fixed rate and the loop simply
+   * looks for a pass that fits the slot. The override's semantics (no shell,
+   * {input}/{output} placeholders, multi-pass retry) are preserved unchanged.
+   */
+  private async synthesizeOnceWithOverride(text: string, targetDurationSeconds: number, dir: string, stem: string): Promise<VoiceSynthesis> {
+    const intermediates: string[] = [];
+    let lastIntermediate = '';
+    let producedSeconds = 0;
+    for (let pass = 1; pass <= MAX_NARRATION_BISECTION_PASSES; pass += 1) {
       lastIntermediate = join(dir, `${stem}-p${pass}.aiff`);
       intermediates.push(lastIntermediate);
-      await this.synthesizeOnce(text, rate, lastIntermediate);
+      await this.synthesizeOnce(text, MIN_NARRATION_RATE_WPM, lastIntermediate);
       producedSeconds = await this.measureDuration(lastIntermediate);
       if (producedSeconds <= targetDurationSeconds) break;
-      if (pass < MAX_RATE_ADAPTATION_PASSES) {
-        // Deterministic proportional speed-up; strictly monotonic.
-        rate = Math.ceil(rate * (producedSeconds / targetDurationSeconds));
-      }
     }
     if (producedSeconds > targetDurationSeconds) {
       for (const intermediate of intermediates) rmSync(intermediate, { force: true });
       throw new RenderSpecificationError(
-        `Narration exceeds the approved slot even after ${MAX_RATE_ADAPTATION_PASSES} deterministic adaptation passes: the approved slot does not admit its text`,
+        `Narration exceeds the approved slot: the approved slot does not admit its text`,
         { segmentText: text, slotSeconds: targetDurationSeconds, producedSeconds }
       );
     }
-
     const wavPath = join(dir, `${stem}.wav`);
     await this.run(this.ffmpegCommand, ['-y', '-i', lastIntermediate, '-ar', '48000', '-ac', '2', wavPath], { timeoutMs: this.commandTimeoutMs });
     const wavSeconds = await this.measureDuration(wavPath);
@@ -208,9 +301,23 @@ export class MacosSayVoiceSynthesizer implements VoiceSynthesizer {
   private async spanishVoice(): Promise<string> {
     if (this.cachedSpanishVoice) return this.cachedSpanishVoice;
     const { stdout } = await this.run(this.sayCommand, ['-v', '?'], { timeoutMs: this.commandTimeoutMs });
-    // `say -v ?` lines look like: `Mónica            es_ES    # Hola...`
+    // `say -v ?` lines look like: `Eddy (Español (España)) es_ES    # Hola...`
+    // or `Mónica              es_ES    # Hola...`. The voice name may contain
+    // spaces and parenthesized display names, so a naive split(/\s+/)[0] would
+    // truncate "Eddy (Español (España))" to "Eddy" and resolve to en_GB.
+    // Capture the full name up to the locale marker and verify the locale.
     const line = stdout.split(/\r?\n/).find(candidate => new RegExp(`\\b${this.voiceLocalePrefix}[-_][A-Za-z]{2}\\b`).test(candidate));
-    const voiceName = line?.trim().split(/\s+/)[0];
+    if (!line) {
+      throw new RenderEnvironmentError(
+        'No Spanish TTS voice is installed for offline narration synthesis',
+        {
+          check: `${this.sayCommand} -v ? | grep es_`,
+          suggestedAction: 'Install a Spanish voice or set CLIPLAB_TTS_COMMAND with {input}/{output} placeholders'
+        }
+      );
+    }
+    const nameMatch = line.match(new RegExp(`^(.+?)\\s+${this.voiceLocalePrefix}[-_][A-Za-z]{2}\\b`));
+    const voiceName = nameMatch?.[1]?.trim();
     if (!voiceName) {
       throw new RenderEnvironmentError(
         'No Spanish TTS voice is installed for offline narration synthesis',

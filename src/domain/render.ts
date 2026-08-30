@@ -25,7 +25,22 @@ export const RESOLUTION_BY_ASPECT_RATIO = {
 // Post-render duration tolerance vs approved duration (±2 frames at target fps).
 export const DURATION_TOLERANCE_FRAMES = 2;
 // Deterministic adaptive-rate narration passes before classifying SPECIFICATION.
+// Kept for backward compatibility; the synthesizer now uses bounded bisection
+// (MAX_NARRATION_BISECTION_PASSES) instead of proportional adaptation.
 export const MAX_RATE_ADAPTATION_PASSES = 3;
+
+// ---- Narration rate policy (words per minute) ----
+// The synthesizer starts at MIN (slowest, most natural narration) and only
+// speeds up via bounded bisection when the text exceeds the approved slot.
+// MAX is a hard cap: text that doesn't fit at MAX is a SPECIFICATION error,
+// never an incomprehensible blur. The gap between narration end and slot end
+// must not exceed MAX_NARRATION_GAP_SECONDS, otherwise the text is too short
+// for the slot at any reasonable rate.
+export const MAX_NARRATION_RATE_WPM = 180;
+export const MIN_NARRATION_RATE_WPM = 100;
+export const MAX_NARRATION_GAP_SECONDS = 1.0;
+// Upper bound on synthesis passes (initial MIN check + bisection iterations).
+export const MAX_NARRATION_BISECTION_PASSES = 8;
 
 export const technicalOutputSchema = z.object({
   fps: z.number().int().positive(),

@@ -97,6 +97,23 @@ class FakeVoiceSynthesizer implements VoiceSynthesizer {
   }
 }
 
+/** Synthesizer that fails narration with RenderSpecificationError on demand. */
+class FailingVoiceSynthesizer implements VoiceSynthesizer {
+  constructor(private failOnText?: string) {}
+  async preflight(): Promise<void> {}
+  async synthesize(text: string, targetDurationSeconds: number, _outputDir?: string) {
+    if (this.failOnText === undefined || text === this.failOnText) {
+      throw new RenderSpecificationError(
+        `Narration exceeds the approved slot even at ${180} WPM: the approved slot does not admit its text`,
+        { segmentText: text, slotSeconds: targetDurationSeconds, producedSeconds: targetDurationSeconds + 10 }
+      );
+    }
+    const filePath = join('/tmp', `narration-${Math.abs(hash(text))}.wav`);
+    writeFileSync(filePath, Buffer.from('fake wav'));
+    return { filePath, durationSeconds: targetDurationSeconds };
+  }
+}
+
 function hash(value: string): number {
   let h = 0;
   for (const char of value) h = (h * 31 + char.charCodeAt(0)) | 0;
@@ -283,6 +300,22 @@ describe('RenderService execution and failure classes', () => {
     expect(error).toBeInstanceOf(RenderSpecificationError);
     expect((error as Error).message).toMatch(/storyboard/);
     expect(service.attempts(entry.renderId)).toHaveLength(1); // no automatic retries
+    db.close();
+  });
+
+  it('narration SPECIFICATION failure re-wraps with the failing segmentId', async () => {
+    const dataDir = mkdtempSync(join(tmpdir(), 'cliplab-spec-narr-'));
+    const { db, pipeline, storyboard, renderer } = await reachRenderState('prod-spec-narr', dataDir);
+    // Replace the synthesizer with one that fails narration for every segment.
+    const synthesizer = new FailingVoiceSynthesizer();
+    const service = new RenderService(new RenderRepository(db), pipeline, storyboard, renderer, synthesizer, { dataDir });
+    const entry = service.startProduction('prod-spec-narr', { actor: 'operator' });
+    await service.idle();
+    const detail = service.getDetail(entry.renderId) as any;
+    expect(detail.state).toBe('FAILED');
+    expect(detail.failureClass).toBe('SPECIFICATION');
+    // The service attaches the failing segmentId for operator visibility.
+    expect(detail.failureSegmentId).toBe('s1');
     db.close();
   });
 
