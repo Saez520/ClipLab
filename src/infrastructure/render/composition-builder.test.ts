@@ -74,11 +74,11 @@ describe('deterministic composition builder', () => {
 
   it('transcribes exact accumulated slots from rhythmAndPositions in order', () => {
     const { indexHtml } = buildComposition(handoff(), technical, narrationFiles);
-    expect(indexHtml).toContain('<div class="clip" data-start="0" data-duration="30" data-track-index="1">');
-    expect(indexHtml).toContain('<div class="clip" data-start="30" data-duration="45" data-track-index="1">');
-    expect(indexHtml).toContain('<div class="clip" data-start="75" data-duration="15.5" data-track-index="1">');
-    expect(indexHtml).toContain('<audio class="clip" data-start="0" data-duration="30" data-track-index="2" src="narration/s1.wav"></audio>');
-    expect(indexHtml).toContain('<audio class="clip" data-start="75" data-duration="15.5" data-track-index="2" src="narration/s3.wav"></audio>');
+    expect(indexHtml).toContain('<div class="clip" id="visual-s1" data-start="0" data-duration="30" data-track-index="1">');
+    expect(indexHtml).toContain('<div class="clip" id="visual-s2" data-start="30" data-duration="45" data-track-index="1">');
+    expect(indexHtml).toContain('<div class="clip" id="visual-s3" data-start="75" data-duration="15.5" data-track-index="1">');
+    expect(indexHtml).toContain('<audio class="clip" id="audio-s1" data-start="0" data-duration="30" data-track-index="2" src="narration/s1.wav"></audio>');
+    expect(indexHtml).toContain('<audio class="clip" id="audio-s3" data-start="75" data-duration="15.5" data-track-index="2" src="narration/s3.wav"></audio>');
     // Stage dimensions derive from the approved aspect ratio.
     expect(indexHtml).toContain('data-width="1080" data-height="1920"');
   });
@@ -104,11 +104,29 @@ describe('deterministic composition builder', () => {
     const composition = buildComposition(hostile, technical, { 's<1>': '/x.wav' });
     expect(composition.indexHtml).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
     expect(composition.indexHtml).toContain('visual &amp; &quot;quoted&quot;');
-    expect(composition.indexHtml).not.toContain('<script>');
+    // The hostile inline <script> must never appear unescaped.
+    expect(composition.indexHtml).not.toContain('<script>alert(1)</script>');
+    // Hostile segmentId 's<1>' must be sanitized: only [A-Za-z0-9-_], rest replaced by '-'.
+    expect(composition.indexHtml).toContain('id="visual-s-1-"');
+    expect(composition.indexHtml).toContain('id="audio-s-1-"');
+    expect(composition.indexHtml).not.toContain('id="visual-s<1>"');
+    expect(composition.indexHtml).not.toContain('id="audio-s<1>"');
     const manifest = JSON.parse(composition.manifestJson);
     expect(manifest.builder.version).toBeGreaterThan(0);
     expect(manifest.inputsSha256.handoff).toMatch(/^[a-f0-9]{64}$/);
     expect(manifest.source.storyboardRevisionId).toBe('opp-1-storyboard-revision-2');
+  });
+
+  it('registers a paused GSAP timeline on window.__timelines under the composition id', () => {
+    const { indexHtml } = buildComposition(handoff(), technical, narrationFiles);
+    // GSAP loaded in head.
+    expect(indexHtml).toContain('<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>');
+    // Registry init + assignment with the exact compositionId key.
+    expect(indexHtml).toContain('window.__timelines = window.__timelines || {};');
+    expect(indexHtml).toContain('const tl = gsap.timeline({ paused: true });');
+    expect(indexHtml).toContain('window.__timelines["opp-1-opp-1-storyboard-revision-2"] = tl;');
+    // The registry key must match the stage data-composition-id exactly.
+    expect(indexHtml).toContain('data-composition-id="opp-1-opp-1-storyboard-revision-2"');
   });
 
   it('rejects slot sums that deviate from the approved duration and missing narration files', () => {

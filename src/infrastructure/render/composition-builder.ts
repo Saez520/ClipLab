@@ -21,6 +21,10 @@ function escapeHtml(value: string): string {
     .replaceAll("'", '&#39;');
 }
 
+function sanitizeSegmentId(segmentId: string): string {
+  return segmentId.replace(/[^A-Za-z0-9-_]/g, '-');
+}
+
 function sha256(value: string): string {
   return createHash('sha256').update(value, 'utf8').digest('hex');
 }
@@ -62,10 +66,10 @@ export function buildComposition(handoff: StoryboardToRenderHandoff, technicalOu
     if (!narrationFile) throw new ValidationError(`Segment ${segment.segmentId} has no synthesized narration file`);
     const startSeconds = Number(cursor.toFixed(6));
     visualClips.push(
-      `    <div class="clip" data-start="${startSeconds}" data-duration="${segment.durationSeconds}" data-track-index="1"><p class="visual">${escapeHtml(segment.visualRepresentation)}</p></div>`
+      `    <div class="clip" id="visual-${sanitizeSegmentId(segment.segmentId)}" data-start="${startSeconds}" data-duration="${segment.durationSeconds}" data-track-index="1"><p class="visual">${escapeHtml(segment.visualRepresentation)}</p></div>`
     );
     audioClips.push(
-      `    <audio class="clip" data-start="${startSeconds}" data-duration="${segment.durationSeconds}" data-track-index="2" src="narration/${escapeHtml(segment.segmentId)}.wav"></audio>`
+      `    <audio class="clip" id="audio-${sanitizeSegmentId(segment.segmentId)}" data-start="${startSeconds}" data-duration="${segment.durationSeconds}" data-track-index="2" src="narration/${escapeHtml(segment.segmentId)}.wav"></audio>`
     );
     manifestSegments.push({
       segmentId: segment.segmentId,
@@ -92,12 +96,18 @@ export function buildComposition(handoff: StoryboardToRenderHandoff, technicalOu
     '<head>',
     '  <meta charset="utf-8">',
     `  <title>${escapeHtml(compositionId)}</title>`,
+    '  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>',
     '</head>',
     '<body>',
     `  <div id="stage" class="stage" data-composition-id="${escapeHtml(compositionId)}" data-start="0" data-duration="${handoff.finalDurationSeconds}" data-width="${technicalOutput.width}" data-height="${technicalOutput.height}">`,
     ...visualClips,
     ...audioClips,
     '  </div>',
+    '  <script>',
+    '    window.__timelines = window.__timelines || {};',
+    '    const tl = gsap.timeline({ paused: true });',
+    `    window.__timelines[${JSON.stringify(compositionId)}] = tl;`,
+    '  </script>',
     '</body>',
     '</html>',
     ''
