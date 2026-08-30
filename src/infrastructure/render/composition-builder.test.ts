@@ -134,4 +134,36 @@ describe('deterministic composition builder', () => {
     expect(() => buildComposition(handoff(), technical, { s1: '/x.wav' })).toThrowError(ValidationError);
     expect(() => buildComposition(handoff({ profile: { ...handoff().profile, aspectRatio: '4:5' } }), technical, narrationFiles)).toThrowError(/aspect ratio/);
   });
+
+  it('emits a continuous micro-motion tween per visual segment with exact X0/X1 and ease none', () => {
+    const { indexHtml } = buildComposition(handoff(), technical, narrationFiles);
+    // T = 90.5; s1(0,30), s2(30,45), s3(75,15.5).
+    // s1: X0=0, X1=0.01*30/90.5; s2: X0=s1.X1, X1=0.01*75/90.5; s3: X0=s2.X1, X1=0.01.
+    expect(indexHtml).toContain('tl.fromTo("#visual-s1", { x: 0.000000 }, { x: 0.003315, duration: 30, ease: "none" }, 0);');
+    expect(indexHtml).toContain('tl.fromTo("#visual-s2", { x: 0.003315 }, { x: 0.008287, duration: 45, ease: "none" }, 30);');
+    expect(indexHtml).toContain('tl.fromTo("#visual-s3", { x: 0.008287 }, { x: 0.010000, duration: 15.5, ease: "none" }, 75);');
+    // Continuity: each X0 equals the previous X1.
+    expect(indexHtml).not.toMatch(/tl\.fromTo\("#visual-s1", \{ x: 0\.003315/);
+    // Audio clips must NOT be targeted by tweens.
+    expect(indexHtml).not.toMatch(/tl\.fromTo\("#audio-/);
+  });
+
+  it('emits X0=0 and X1=0.01 for a single-segment composition', () => {
+    const single = handoff({
+      finalDurationSeconds: 90,
+      authorizedSegments: [segment('s1', 0, 90)],
+      rhythmAndPositions: [{ segmentId: 's1', position: 0, durationSeconds: 90, rhythm: 'steady', synchronization: 'sync' }],
+      audioVisualMapping: [{ segmentId: 's1', mapping: 'c' }],
+      validations: [segment('s1', 0, 90).validation]
+    });
+    const { indexHtml } = buildComposition(single, technical, { s1: '/x.wav' });
+    expect(indexHtml).toContain('tl.fromTo("#visual-s1", { x: 0.000000 }, { x: 0.010000, duration: 90, ease: "none" }, 0);');
+  });
+
+  it('keeps byte-for-byte determinism after adding motion tweens', () => {
+    const a = buildComposition(handoff(), technical, narrationFiles);
+    const b = buildComposition(handoff(), technical, narrationFiles);
+    expect(b.indexHtml).toBe(a.indexHtml);
+    expect(b.manifestJson).toBe(a.manifestJson);
+  });
 });
