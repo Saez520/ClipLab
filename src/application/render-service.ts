@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { z } from 'zod';
 import { renderToFinalSchema, type StoryboardToRenderHandoff } from '../domain/handoffs.js';
@@ -211,6 +211,11 @@ export class RenderService {
       const engineVersion = await this.safeEngineVersion();
       const engine: CompositionEngineMetadata = { name: 'hyperframes', version: engineVersion, flags: RENDER_CLI_FLAGS };
       const composition = buildComposition(handoff, technical, narrationFiles, engine);
+      const compositionNarrationDir = join(compositionDir, 'narration');
+      mkdirSync(compositionNarrationDir, { recursive: true });
+      for (const segment of [...handoff.authorizedSegments].sort((a, b) => a.position - b.position)) {
+        copyFileSync(narrationFiles[segment.segmentId], join(compositionNarrationDir, `${segment.segmentId}.wav`));
+      }
       writeFileSync(join(compositionDir, 'index.html'), composition.indexHtml, 'utf8');
       writeFileSync(join(compositionDir, 'manifest.json'), composition.manifestJson, 'utf8');
 

@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -223,6 +223,17 @@ describe('RenderService execution and failure classes', () => {
     expect(manifest.segments[0].startSeconds).toBe(0);
     expect(manifest.segments[1].startSeconds).toBe(30);
     expect(manifest.engine.version).toBeTruthy();
+    // Narration wavs are copied into composition/narration/{segmentId}.wav (byte-identical to synthesized).
+    const narrationDir = join(dataDir, 'renders', entry.renderId, 'narration');
+    const synthesizedFiles = readdirSync(narrationDir).filter(f => f.endsWith('.wav'));
+    const synthesizedBytes = new Set(synthesizedFiles.map(p => readFileSync(join(narrationDir, p)).toString('hex')));
+    const compositionNarrationDir = join(dataDir, 'renders', entry.renderId, 'composition', 'narration');
+    const copiedNarrationFiles = readdirSync(compositionNarrationDir).filter(f => f.endsWith('.wav')).sort();
+    expect(copiedNarrationFiles).toEqual(['s1.wav', 's2.wav']);
+    for (const copiedFile of copiedNarrationFiles) {
+      const copiedHex = readFileSync(join(compositionNarrationDir, copiedFile)).toString('hex');
+      expect(synthesizedBytes.has(copiedHex)).toBe(true);
+    }
     // Attempts recorded.
     const attempts = service.attempts(entry.renderId);
     expect(attempts).toHaveLength(1);
