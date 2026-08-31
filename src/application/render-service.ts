@@ -3,7 +3,7 @@ import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { z } from 'zod';
 import { renderToFinalSchema, type StoryboardToRenderHandoff } from '../domain/handoffs.js';
-import { ProductionGateError, RenderEnvironmentError, RenderSpecificationError, RenderStateError, RenderUnclassifiedError, ValidationError } from '../domain/errors.js';
+import { CompositionTemplateError, ProductionGateError, RenderEnvironmentError, RenderSpecificationError, RenderStateError, RenderUnclassifiedError, ValidationError } from '../domain/errors.js';
 import { assertOutputDuration, renderFailureSchema, renderQueueEntrySchema, renderResultSchema, resolveTechnicalOutput, type RenderFailure, type RenderQueueEntry, type RenderResult, type VideoRenderer, type VoiceSynthesizer, RENDER_STAGES } from '../domain/render.js';
 import { PipelineRepository } from '../infrastructure/repositories/pipeline-repository.js';
 import { RenderRepository } from '../infrastructure/repositories/render-repository.js';
@@ -264,6 +264,9 @@ function classifyFailure(error: unknown, stage: (typeof RENDER_STAGES)[number]):
   const specificationAction = 'Return to storyboard: correct it and request an explicit user reapproval before producing again';
   const environmentAction = 'Verify the render environment (FFmpeg, TTS voices, resources) and retry from the operator endpoint';
   const unclassifiedAction = 'Decide between retrying production after verifying the environment OR returning to storyboard with correction and reapproval';
+  if (error instanceof CompositionTemplateError) {
+    return { failureClass: 'SPECIFICATION', stage, cause: error.message, suggestedAction: error.details?.action ?? 'Register the template or choose an existing one', rawExcerpt: JSON.stringify(error.details) };
+  }
   if (error instanceof RenderSpecificationError) {
     const details = error.details ?? {};
     return { failureClass: 'SPECIFICATION', stage, cause: error.message, ...(details.segmentId ? { segmentId: details.segmentId } : {}), suggestedAction: specificationAction, ...(details.validatorFindings ? { rawExcerpt: details.validatorFindings } : {}) };

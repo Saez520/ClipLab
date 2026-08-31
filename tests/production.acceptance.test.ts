@@ -57,9 +57,11 @@ async function prepareToStoryboard(opportunityId: string): Promise<void> {
   await app.inject({ method: 'POST', url: `/api/v1/opportunities/${opportunityId}/advance`, payload: { actor: 'writer', role: 'WRITER', payload: response.json() } });
 }
 
-async function reachRenderState(opportunityId: string, segments: ReturnType<typeof segment>[] = [segment('s1', 0), segment('s2', 1)]): Promise<void> {
+async function reachRenderState(opportunityId: string, segments: ReturnType<typeof segment>[] = [segment('s1', 0), segment('s2', 1)], profile?: Record<string, unknown>): Promise<void> {
   await prepareToStoryboard(opportunityId);
-  let response = await app.inject({ method: 'POST', url: `/api/v1/opportunities/${opportunityId}/storyboard`, payload: { actor: 'storyboard', segments } });
+  const storyboardPayload: Record<string, unknown> = { actor: 'storyboard', segments };
+  if (profile) storyboardPayload.profile = profile;
+  let response = await app.inject({ method: 'POST', url: `/api/v1/opportunities/${opportunityId}/storyboard`, payload: storyboardPayload });
   expect(response.statusCode, JSON.stringify(response.json())).toBe(201);
   const revisionId = response.json().storyboardRevisionId;
   response = await app.inject({ method: 'POST', url: `/api/v1/opportunities/${opportunityId}/storyboard/approve`, payload: { actor: 'user', storyboardRevisionId: revisionId } });
@@ -164,10 +166,16 @@ describe('production acceptance (CA ca-produccion-video-sincronizado)', () => {
     // Narration synthesized from the approved narrative spans of the package.
     expect(synthesizer.synthesizedTexts.map(item => item.text)).toEqual(['span-s1', 'span-s2']);
     expect(synthesizer.synthesizedTexts.every(item => item.targetDurationSeconds === 30)).toBe(true);
-    // Visual clips transcribed verbatim from the approved visual representations.
-    expect(renderer.htmlDocuments[0]).toContain('>visual-s1</p>');
-    expect(renderer.htmlDocuments[0]).toContain('>visual-s2</p>');
+    // Visual clips composed from the template (meta-bar + badge + blocks); no plain <p class="visual">.
+    expect(renderer.htmlDocuments[0]).toContain('class="meta-bar"');
+    expect(renderer.htmlDocuments[0]).toContain('class="badge badge--cyan"');
+    expect(renderer.htmlDocuments[0]).not.toContain('<p class="visual">');
     expect(renderer.htmlDocuments[0]).toContain('data-duration="30"');
+    // Manifest registers template identity and builder version 2.
+    expect(renderer.manifests[0].template.name).toBe('pulso');
+    expect(renderer.manifests[0].template.version).toBe('1.0.0');
+    expect(renderer.manifests[0].template.sha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(renderer.manifests[0].builder.version).toBe(2);
     // Composition slots accumulate exactly like the approved rhythm.
     expect(renderer.manifests[0].segments.map((item: any) => item.startSeconds)).toEqual([0, 30]);
     // Staged execution in contract order.
@@ -318,6 +326,22 @@ describe('production acceptance (CA ca-produccion-video-sincronizado)', () => {
     const slotTotal = renderer.manifests[0].segments.reduce((total: number, item: any) => total + item.durationSeconds, 0);
     expect(slotTotal).toBe(95);
     expect(detail.output.durationSeconds).toBe(95);
+  });
+
+  it('invalid composition template fails SPECIFICATION at COMPOSITION with cause+action and no output', async () => {
+    const { renderer, synthesizer } = productionFakes();
+    app = buildApp(':memory:', { renderer, synthesizer });
+    await reachRenderState('prod-tpl-invalid', undefined, { compositionTemplate: 'no-existe' });
+
+    const started = await app.inject({ method: 'POST', url: '/api/v1/opportunities/prod-tpl-invalid/production', payload: { actor: 'operator' } });
+    expect(started.statusCode).toBe(202);
+    const failed = await waitForRenderState(started.json().renderId, 'FAILED');
+    expect(failed.failureClass).toBe('SPECIFICATION');
+    expect(failed.failureStage).toBe('COMPOSITION');
+    expect(failed.failureCause).toContain('no-existe');
+    expect(failed.failureSuggestedAction).toMatch(/register|choose/i);
+    // No composition was written (htmlDocuments did not grow).
+    expect(renderer.htmlDocuments).toHaveLength(0);
   });
 
   it('runs queued productions one at a time in visible order, each MP4 conforming to defaults (CA-9)', async () => {

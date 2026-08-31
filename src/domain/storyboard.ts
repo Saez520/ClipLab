@@ -32,11 +32,14 @@ export const STORYBOARD_TRANSITIONS = [
   { from: 'STORYBOARD_BLOCKED', to: 'STORYBOARD_SUPERSEDED' }
 ] as const;
 
+export const DEFAULT_COMPOSITION_TEMPLATE = 'pulso';
+
 export const DEFAULT_PUBLICATION_PROFILE = {
   platform: 'generic',
   aspectRatio: '9:16',
   language: 'español',
-  visualDensity: 'standard'
+  visualDensity: 'standard',
+  compositionTemplate: DEFAULT_COMPOSITION_TEMPLATE
 } as const;
 export const PREFERRED_DURATION_SECONDS = { min: 30, max: 90 } as const;
 export const MAX_DURATION_WITHOUT_EXPLICIT_APPROVAL = 90;
@@ -45,7 +48,8 @@ export const publicationProfileSchema = z.object({
   platform: text.default(DEFAULT_PUBLICATION_PROFILE.platform),
   aspectRatio: text.default(DEFAULT_PUBLICATION_PROFILE.aspectRatio),
   language: text.default(DEFAULT_PUBLICATION_PROFILE.language),
-  visualDensity: z.enum(['sparse', 'standard', 'dense']).default(DEFAULT_PUBLICATION_PROFILE.visualDensity)
+  visualDensity: z.enum(['sparse', 'standard', 'dense']).default(DEFAULT_PUBLICATION_PROFILE.visualDensity),
+  compositionTemplate: z.string().min(1).default(DEFAULT_COMPOSITION_TEMPLATE)
 }).strict();
 export type PublicationProfile = z.infer<typeof publicationProfileSchema>;
 

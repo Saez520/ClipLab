@@ -24,8 +24,16 @@ const segment = {
 
 describe('storyboard contracts', () => {
   it('applies the closed publication defaults and computes duration', () => {
-    expect(normalizePublicationProfile({})).toMatchObject({ aspectRatio: '9:16', language: 'español', visualDensity: 'standard' });
+    expect(normalizePublicationProfile({})).toMatchObject({ aspectRatio: '9:16', language: 'español', visualDensity: 'standard', compositionTemplate: 'pulso' });
     expect(finalDuration([segment, { ...segment, segmentId: 'segment-2', position: 1, durationSeconds: 15, sourceReferences: [{ ...segment.sourceReferences[0], segmentId: 'segment-2' }] }])).toBe(45);
+  });
+
+  it('honors an explicit compositionTemplate name over the default', () => {
+    expect(normalizePublicationProfile({ compositionTemplate: 'aurora' })).toMatchObject({ compositionTemplate: 'aurora' });
+  });
+
+  it('rejects an empty compositionTemplate (min(1))', () => {
+    expect(() => storyboardToRenderSchema.parse({ opportunityId: 'o', profile: { compositionTemplate: '' } })).toThrow(ZodError);
   });
 
   it('accepts a valid dual-channel segment', () => {
