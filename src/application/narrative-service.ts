@@ -17,7 +17,8 @@ const actorSchema = z.string().min(1);
 const generationInputSchema = z.object({
   narrativeText: z.string().min(1),
   sources: z.record(z.string()).default({}),
-  materialGap: z.string().min(1).optional()
+  materialGap: z.string().min(1).optional(),
+  actor: actorSchema.optional()
 }).strict();
 
 export class NarrativeService {
@@ -41,9 +42,9 @@ export class NarrativeService {
     return this.narrative.approveConfiguration(opportunityId, configurationId, actor);
   }
 
-  generate(opportunityId: string, input: unknown, actor = 'narrator') {
-    actorSchema.parse(actor);
+  generate(opportunityId: string, input: unknown) {
     const parsed = generationInputSchema.parse(input);
+    const actor = parsed.actor ?? 'narrator';
     if (!this.curation.hasApprovedProposal(opportunityId)) throw new AuthorizationRequiredError('Approved editorial curation is required before generating a narrative');
     const configuration = this.narrative.getConfiguration(opportunityId) as any;
     if (configuration.state !== 'READY_TO_GENERATE' || !configuration.userApproved) throw new AuthorizationRequiredError('User approval of the narrative configuration is required');

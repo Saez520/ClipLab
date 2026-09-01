@@ -42,6 +42,17 @@ describe('narrative service', () => {
     expect(pipeline.get('o').state).toBe('STORYBOARD');
   });
 
+  it('uses explicit actor from input when provided', () => {
+    const { service } = setup();
+    const config = service.proposeConfiguration('o', { audience: 'developers', tone: 'direct', depth: 'deep', voice: 'calm', style: 'continuous', targetDurationSeconds: 45 });
+    service.approveConfiguration('o', config.configuration_id, { actor: 'user' });
+    const script = service.generate('o', { narrativeText: 'Texto [src/example.ts:1]', sources: { 'src/example.ts': 'line' }, actor: 'director' });
+    expect(script.state).toBe('READY_FOR_DIRECTOR_VALIDATION');
+    const lineage: any = service.lineage('o');
+    const lastEvent = lineage.narrative.events[lineage.narrative.events.length - 1];
+    expect(lastEvent.actor).toBe('director');
+  });
+
   it('blocks material gaps without authorizing the storyboard', () => {
     const { service, pipeline } = setup();
     const config = service.proposeConfiguration('o', { audience: 'developers', tone: 'direct', depth: 'deep', voice: 'calm', style: 'continuous' });

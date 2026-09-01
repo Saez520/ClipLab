@@ -34,8 +34,7 @@ export async function narrativeRoutes(app: FastifyInstance, service: NarrativeSe
   app.post('/opportunities/:id/narrative/scripts/generate', async (req, res) => {
     try {
       const p = params.parse(req.params);
-      const body = z.object({ actor: actor.optional(), narrativeText: z.string().min(1), sources: z.record(z.string()).optional(), materialGap: z.string().min(1).optional() }).strict().parse(req.body);
-      return res.code(201).send(service.generate(p.id, body, body.actor ?? 'narrator'));
+      return res.code(201).send(service.generate(p.id, req.body));
     } catch (error) { return sendError(res, error); }
   });
 
