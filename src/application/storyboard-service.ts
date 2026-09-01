@@ -386,7 +386,7 @@ export class StoryboardService {
       scriptAuthorization: input.scriptAuthorization,
       profile: normalizePublicationProfile(input.profile),
       segments,
-      finalDurationSeconds: input.finalDurationSeconds ?? finalDuration(segments),
+      finalDurationSeconds: finalDuration(segments),
       targetDurationSeconds: input.targetDurationSeconds,
       sources,
       validations: segments.map(segment => segment.validation),

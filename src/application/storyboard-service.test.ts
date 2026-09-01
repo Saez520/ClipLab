@@ -90,6 +90,28 @@ describe('storyboard service', () => {
     expect(storyboard.get('o').storyboardRevisionId).not.toBe(created.storyboardRevisionId);
   });
 
+  it('recalculates finalDurationSeconds from new segments on revalidate instead of inheriting the prior revision total', () => {
+    const { storyboard } = setup();
+    // Create with two segments of 30s each → total 60
+    storyboard.create('o', { segments: [segment('s1', 0), segment('s2', 1)] });
+    // Request correction to put revision into CORRECTION_REQUESTED state (required for revalidate)
+    const correction = storyboard.requestCorrection('o', { actor: 'user', segmentId: 's1', expectedAdjustment: 'new visual' });
+    expect(correction.revision.finalDurationSeconds).toBe(60);
+
+    // Revalidate with segments of 40s and 50s → total must be 90, NOT the inherited 60
+    const revalidated = storyboard.revalidate('o', {
+      actor: 'storyboard',
+      segments: [
+        { ...segment('s1', 0), durationSeconds: 40 },
+        { ...segment('s2', 1), durationSeconds: 50 }
+      ]
+    });
+
+    expect(revalidated.finalDurationSeconds).toBe(90);
+    expect(revalidated.segments[0].durationSeconds).toBe(40);
+    expect(revalidated.segments[1].durationSeconds).toBe(50);
+  });
+
   it('blocks unsupported corrections with a visible reason and recovers on a valid retry', () => {
     const { storyboard } = setup();
     storyboard.create('o', { segments: [segment('s1', 0)] });
