@@ -1,7 +1,8 @@
 {
   "name": "aurora",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "identity": "@aurora_studio",
   "language": "en",
-  "sha256": "bdc7fdc2a3928ce07752f20be039d645ddbc80ffa710a0c0fdbd8db9196189c6"
+  "sha256": "3a7009e0da56072af32c8cf43437ab499d707de04d5d9ef43900490bd5cd0db6",
+  "layout": "standard"
 }

@@ -1,7 +1,8 @@
 {
   "name": "pulso",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "identity": "@kevo_ia",
   "language": "es",
-  "sha256": "b119b9d2c0613ae8fbe11284ddb464a1c851bc9a089028f3e60a34234ed4f72b"
+  "sha256": "9cd5cc0ac116fbf9d03610b12120983e971a3befe8736e1b709265f3e6dc3ce5",
+  "layout": "standard"
 }

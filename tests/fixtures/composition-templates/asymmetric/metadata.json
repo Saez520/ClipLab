@@ -1,0 +1,8 @@
+{
+  "name": "asymmetric",
+  "version": "1.0.0",
+  "identity": "test-asym",
+  "language": "es",
+  "sha256": "1dc56b283fe0b195e8944f1ba3879c176ad7717e77ccfab1b579b5e3921f417a",
+  "layout": "asymmetric"
+}

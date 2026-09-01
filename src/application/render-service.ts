@@ -16,6 +16,7 @@ const actorInputSchema = z.object({ actor: z.string().min(1) }).strict();
 export interface RenderServiceOptions {
   dataDir?: string;
   profileEnv?: string;
+  templatesRoot?: string;
 }
 
 /**
@@ -25,6 +26,7 @@ export interface RenderServiceOptions {
 export class RenderService {
   private readonly dataDir: string;
   private readonly profileEnv?: string;
+  private readonly templatesRoot?: string;
   /** In-process FIFO worker: a single promise chain guarantees one RUNNING render at a time. */
   private chain: Promise<void> = Promise.resolve();
 
@@ -38,6 +40,7 @@ export class RenderService {
   ) {
     this.dataDir = options.dataDir ?? process.env.CLIPLAB_DATA_DIR ?? './data';
     this.profileEnv = options.profileEnv ?? process.env.CLIPLAB_RENDER_PROFILE;
+    this.templatesRoot = options.templatesRoot;
     // Startup reconciliation: this process is now the single owner of the
     // queue, so renders still marked RUNNING belong to a dead previous process
     // (crash, OOM, redeploy) and any QUEUED backlog persisted before the
@@ -210,7 +213,7 @@ export class RenderService {
       mkdirSync(compositionDir, { recursive: true });
       const engineVersion = await this.safeEngineVersion();
       const engine: CompositionEngineMetadata = { name: 'hyperframes', version: engineVersion, flags: RENDER_CLI_FLAGS };
-      const composition = buildComposition(handoff, technical, narrationFiles, engine);
+      const composition = buildComposition(handoff, technical, narrationFiles, engine, { templatesRoot: this.templatesRoot });
       const compositionNarrationDir = join(compositionDir, 'narration');
       mkdirSync(compositionNarrationDir, { recursive: true });
       for (const segment of [...handoff.authorizedSegments].sort((a, b) => a.position - b.position)) {

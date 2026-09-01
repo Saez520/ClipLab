@@ -11,13 +11,16 @@ describe('composition-catalog: resolveCompositionTemplate', () => {
   it('resolves a valid template (happy path)', () => {
     const descriptor = resolveCompositionTemplate('pulso', FIXTURES);
     expect(descriptor.name).toBe('pulso');
-    expect(descriptor.version).toBe('1.0.0');
+    expect(descriptor.version).toBe('1.1.0');
     expect(descriptor.identity).toBe('@kevo_ia');
     expect(descriptor.language).toBe('es');
+    expect(descriptor.layout).toBe('standard');
     expect(descriptor.css).toContain('--accent-cyan:#10c8f0');
+    expect(descriptor.css).toContain('content-stack');
     expect(descriptor.fragments['io-row']).toContain('io-row');
+    expect(descriptor.fragments['content-stack']).toContain('{{children}}');
     expect(Object.keys(descriptor.fragments).sort()).toEqual(
-      ['meta-bar', 'badge', 'heading', 'io-row', 'node-sides', 'node-core', 'steps', 'letters', 'chaos'].sort()
+      ['meta-bar', 'badge', 'heading', 'io-row', 'node-sides', 'node-core', 'steps', 'letters', 'chaos', 'content-stack'].sort()
     );
     expect(descriptor.sha256).toMatch(/^[a-f0-9]{64}$/);
   });
@@ -147,7 +150,8 @@ describe('composition-catalog: DEFAULT_TEMPLATES_ROOT (R4-001)', () => {
   it('successfully resolves pulso from the default root without explicit override', () => {
     const descriptor = resolveCompositionTemplate('pulso');
     expect(descriptor.name).toBe('pulso');
-    expect(descriptor.version).toBe('1.0.0');
+    expect(descriptor.version).toBe('1.1.0');
+    expect(descriptor.layout).toBe('standard');
   });
 });
 

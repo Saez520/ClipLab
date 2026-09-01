@@ -1,7 +1,9 @@
 import { readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/api/app.js';
+
+const FIXTURES = resolve(__dirname, 'fixtures/composition-templates');
 import { RenderEnvironmentError, RenderSpecificationError, RenderUnclassifiedError } from '../src/domain/errors.js';
 import type { RenderCliRequest, RenderCliResult, VideoRenderer, VoiceSynthesizer } from '../src/domain/render.js';
 
@@ -171,11 +173,11 @@ describe('production acceptance (CA ca-produccion-video-sincronizado)', () => {
     expect(renderer.htmlDocuments[0]).toContain('class="badge badge--cyan"');
     expect(renderer.htmlDocuments[0]).not.toContain('<p class="visual">');
     expect(renderer.htmlDocuments[0]).toContain('data-duration="30"');
-    // Manifest registers template identity and builder version 2.
+    // Manifest registers template identity, version 1.1.0 and builder version 3.
     expect(renderer.manifests[0].template.name).toBe('pulso');
-    expect(renderer.manifests[0].template.version).toBe('1.0.0');
+    expect(renderer.manifests[0].template.version).toBe('1.1.0');
     expect(renderer.manifests[0].template.sha256).toMatch(/^[a-f0-9]{64}$/);
-    expect(renderer.manifests[0].builder.version).toBe(2);
+    expect(renderer.manifests[0].builder.version).toBe(3);
     // Composition slots accumulate exactly like the approved rhythm.
     expect(renderer.manifests[0].segments.map((item: any) => item.startSeconds)).toEqual([0, 30]);
     // Staged execution in contract order.
@@ -372,5 +374,36 @@ describe('production acceptance (CA ca-produccion-video-sincronizado)', () => {
     for (const html of renderer.htmlDocuments) {
       expect(html).toContain('data-width="1080" data-height="1920"');
     }
+  });
+
+  it('fails fast when standard layout template lacks required content-stack block (MISSING_BLOCK)', async () => {
+    const { renderer, synthesizer } = productionFakes();
+    app = buildApp(':memory:', { renderer, synthesizer, templatesRoot: FIXTURES });
+    await reachRenderState('prod-tpl-missing-stack', undefined, { compositionTemplate: 'missing-stack' });
+
+    const started = await app.inject({ method: 'POST', url: '/api/v1/opportunities/prod-tpl-missing-stack/production', payload: { actor: 'operator' } });
+    expect(started.statusCode).toBe(202);
+    const failed = await waitForRenderState(started.json().renderId, 'FAILED');
+    expect(failed.failureClass).toBe('SPECIFICATION');
+    expect(failed.failureStage).toBe('COMPOSITION');
+    expect(failed.failureCause).toContain('missing-stack');
+    expect(failed.failureSuggestedAction).toContain('content-stack');
+    // Fail-closed: no composition was written.
+    expect(renderer.htmlDocuments).toHaveLength(0);
+  });
+
+  it('asymmetric layout template renders without content-stack wrap or bilateral anchors', async () => {
+    const { renderer, synthesizer } = productionFakes();
+    app = buildApp(':memory:', { renderer, synthesizer, templatesRoot: FIXTURES });
+    await reachRenderState('prod-tpl-asymmetric', undefined, { compositionTemplate: 'asymmetric' });
+
+    const started = await app.inject({ method: 'POST', url: '/api/v1/opportunities/prod-tpl-asymmetric/production', payload: { actor: 'operator' } });
+    expect(started.statusCode).toBe(202);
+    const succeeded = await waitForRenderState(started.json().renderId, 'SUCCEEDED');
+    expect(succeeded.state).toBe('SUCCEEDED');
+    expect(renderer.manifests[0].template.name).toBe('asymmetric');
+    // Asymmetric opt-out: no content-stack wrap and no bilateral anchors injected by the builder.
+    expect(renderer.htmlDocuments[0]).not.toContain('<div class="content-stack">');
+    expect(renderer.htmlDocuments[0]).not.toContain('style="position:absolute; inset:0;"');
   });
 });

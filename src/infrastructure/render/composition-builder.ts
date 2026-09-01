@@ -6,7 +6,7 @@ import { escapeHtml, sha256 } from './composition-utils.js';
 import { resolveCompositionTemplate } from './composition-catalog.js';
 import { mapSegmentToSlots } from './composition-mapper.js';
 
-export const COMPOSITION_BUILDER_VERSION = 2;
+export const COMPOSITION_BUILDER_VERSION = 3;
 
 export interface Composition {
   indexHtml: string;
@@ -71,8 +71,12 @@ export function buildComposition(handoff: StoryboardToRenderHandoff, technicalOu
 
     // Compose visual content from template blocks based on deterministic classifier.
     const visualContent = composeVisualClip(segment, template, handoff.opportunityId);
+    // Bilateral anchors (inset:0) for standard layout: the HyperFrames 0.8.12 runtime
+    // respects authored anchors and does not overwrite them, enabling horizontal centering.
+    // Asymmetric templates opt out — they control their own positioning.
+    const clipStyle = template.layout === 'standard' ? ' style="position:absolute; inset:0;"' : '';
     visualClips.push(
-      `    <div class="clip" id="visual-${sanitizedId}" data-start="${startSeconds}" data-duration="${segment.durationSeconds}" data-track-index="1">${visualContent}</div>`
+      `    <div class="clip" id="visual-${sanitizedId}" data-start="${startSeconds}" data-duration="${segment.durationSeconds}" data-track-index="1"${clipStyle}>${visualContent}</div>`
     );
     audioClips.push(
       `    <audio class="clip" id="audio-${sanitizedId}" data-start="${startSeconds}" data-duration="${segment.durationSeconds}" data-track-index="2" src="narration/${escapeHtml(segment.segmentId)}.wav"></audio>`
@@ -162,10 +166,19 @@ export function buildComposition(handoff: StoryboardToRenderHandoff, technicalOu
 }
 
 /**
+ * Wraps inner content into the template's content-stack block by replacing {{children}}.
+ * Used only for standard layout templates.
+ */
+function wrapInContentStack(inner: string, fragment: string): string {
+  return fragment.replace('{{children}}', inner);
+}
+
+/**
  * Builds the inner HTML of a visual clip from template blocks.
  * Always emits: meta-bar + badge + one content block (or fallback heading).
+ * For standard layout, wraps the result in the template's content-stack block.
  */
-function composeVisualClip(segment: StoryboardToRenderHandoff['authorizedSegments'][number], template: { identity: string; fragments: Record<string, string> }, opportunityId: string): string {
+function composeVisualClip(segment: StoryboardToRenderHandoff['authorizedSegments'][number], template: { identity: string; layout: 'standard' | 'asymmetric'; fragments: Record<string, string> }, opportunityId: string): string {
   const slots = mapSegmentToSlots(segment);
   const substituted = (fragment: string) => fragment.replace(/\{\{([a-z.]+)\}\}/g, (_, key: string) => slots.slots[key] ?? '');
 
@@ -208,5 +221,12 @@ function composeVisualClip(segment: StoryboardToRenderHandoff['authorizedSegment
       break;
   }
 
-  return metaBar + badge + content;
+  const inner = metaBar + badge + content;
+
+  // Standard layout: wrap inner content in the template's content-stack block.
+  // Asymmetric templates opt out — return inner content without wrapping.
+  if (template.layout === 'standard') {
+    return wrapInContentStack(inner, template.fragments['content-stack']);
+  }
+  return inner;
 }

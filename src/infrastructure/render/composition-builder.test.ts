@@ -92,9 +92,9 @@ describe('deterministic composition builder (v2 with templates)', () => {
     const { manifestJson } = buildComposition(handoff(), technical, narrationFiles, undefined, { templatesRoot: FIXTURES });
     const manifest = JSON.parse(manifestJson);
     expect(manifest.template.name).toBe('pulso');
-    expect(manifest.template.version).toBe('1.0.0');
+    expect(manifest.template.version).toBe('1.1.0');
     expect(manifest.template.sha256).toMatch(/^[a-f0-9]{64}$/);
-    expect(manifest.builder.version).toBe(2);
+    expect(manifest.builder.version).toBe(3);
     // Existing manifest fields preserved.
     expect(manifest.source.finalDurationSeconds).toBe(90.5);
     expect(manifest.inputsSha256.handoff).toMatch(/^[a-f0-9]{64}$/);
@@ -140,9 +140,11 @@ describe('deterministic composition builder (v2 with templates)', () => {
 
   it('preserves audio clips and exact clip attrs (id/data-start/duration/track-index)', () => {
     const { indexHtml } = buildComposition(handoff(), technical, narrationFiles, undefined, { templatesRoot: FIXTURES });
-    expect(indexHtml).toContain('<div class="clip" id="visual-s1" data-start="0" data-duration="30" data-track-index="1">');
-    expect(indexHtml).toContain('<div class="clip" id="visual-s2" data-start="30" data-duration="45" data-track-index="1">');
-    expect(indexHtml).toContain('<div class="clip" id="visual-s3" data-start="75" data-duration="15.5" data-track-index="1">');
+    expect(indexHtml).toContain('<div class="clip" id="visual-s1" data-start="0" data-duration="30" data-track-index="1" style="position:absolute; inset:0;">');
+    expect(indexHtml).toContain('<div class="clip" id="visual-s2" data-start="30" data-duration="45" data-track-index="1" style="position:absolute; inset:0;">');
+    expect(indexHtml).toContain('<div class="clip" id="visual-s3" data-start="75" data-duration="15.5" data-track-index="1" style="position:absolute; inset:0;">');
+    // Visual clips wrapped in content-stack (standard layout).
+    expect(indexHtml).toContain('<div class="content-stack">');
     expect(indexHtml).toContain('<audio class="clip" id="audio-s1" data-start="0" data-duration="30" data-track-index="2" src="narration/s1.wav"></audio>');
     expect(indexHtml).toContain('<audio class="clip" id="audio-s3" data-start="75" data-duration="15.5" data-track-index="2" src="narration/s3.wav"></audio>');
     expect(indexHtml).toContain('data-width="1080" data-height="1920"');

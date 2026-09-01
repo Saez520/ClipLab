@@ -47,6 +47,7 @@ export interface TemplateDescriptor {
   version: string;
   identity: string;
   language: string;
+  layout: 'standard' | 'asymmetric';
   css: string;
   fragments: Record<string, string>;
   templatePath: string;
@@ -55,6 +56,7 @@ export interface TemplateDescriptor {
 
 const NAME_REGEX = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 const REQUIRED_BLOCKS = ['meta-bar', 'badge', 'heading', 'io-row', 'node-sides', 'node-core', 'steps', 'letters', 'chaos'] as const;
+const STANDARD_LAYOUT_BLOCKS = ['content-stack'] as const;
 const CSS_PATTERN = /<style>([\s\S]*?)<\/style>/;
 const BLOCK_PATTERN = /<!--\s*@block:([a-z-]+)\s*-->([\s\S]*?)<!--\s*@endblock:\1\s*-->/g;
 
@@ -92,7 +94,7 @@ export function resolveCompositionTemplate(name: string, root: string = getDefau
     });
   }
 
-  let metadata: { name?: string; version?: string; identity?: string; language?: string; sha256?: string };
+  let metadata: { name?: string; version?: string; identity?: string; language?: string; sha256?: string; layout?: string };
   try {
     metadata = JSON.parse(readFileSync(join(templateDir, 'metadata.json'), 'utf8'));
   } catch (error) {
@@ -177,11 +179,29 @@ export function resolveCompositionTemplate(name: string, root: string = getDefau
     });
   }
 
+  // Layout contract: parse metadata.layout (optional, default 'standard').
+  // Only 'standard' and 'asymmetric' are accepted; any other value falls back to 'standard'.
+  const rawLayout = typeof metadata.layout === 'string' ? metadata.layout.trim() : '';
+  const layout: 'standard' | 'asymmetric' = rawLayout === 'asymmetric' ? 'asymmetric' : 'standard';
+
+  // When layout is 'standard' (or default), content-stack is a required block.
+  // 'asymmetric' opts out: no content-stack required.
+  if (layout === 'standard' && !('content-stack' in fragments)) {
+    const missingStandard = STANDARD_LAYOUT_BLOCKS.filter(block => !(block in fragments));
+    throw new CompositionTemplateError(`Composition template '${name}' cannot be resolved: MISSING_BLOCK`, {
+      requestedName: name,
+      reason: 'MISSING_BLOCK',
+      action: `Add the missing block(s): ${missingStandard.join(', ')}`,
+      templateDir
+    });
+  }
+
   return {
     name,
     version: metadata.version,
     identity,
     language,
+    layout,
     css: cssMatch[1],
     fragments,
     templatePath: join(templateDir, 'template.html'),
